@@ -1,0 +1,38 @@
+{
+  "concerts": [
+    {
+      "id": "tour-estivo-2026",
+      "name": "Tour Estivo - Rock set",
+      "songs": [
+        {
+          "title": "Shine On You Crazy Diamond",
+          "patches": [
+            { "name": "Intro Pad Lento", "presetNum": 24 },
+            { "name": "Lead Synth Solo", "presetNum": 40 },
+            { "name": "Piano Acustico", "presetNum": 0 }
+          ]
+        },
+        {
+          "title": "Superstition",
+          "patches": [
+            { "name": "Clavinet Base", "presetNum": 12 },
+            { "name": "Brass Riff", "presetNum": 33 }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "acustico-trio",
+      "name": "Serata Acustica in Trio",
+      "songs": [
+        {
+          "title": "Your Song",
+          "patches": [
+            { "name": "Gran Piano", "presetNum": 0 },
+            { "name": "Piano e Archi", "presetNum": 15 }
+          ]
+        }
+      ]
+    }
+  ]
+}
