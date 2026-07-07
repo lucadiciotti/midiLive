@@ -1,119 +1,200 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <title>Numa Live Controller</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#121212">
     <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-    <title>Setlist Debug Numa</title>
     <style>
-        body { font-family: sans-serif; background: #121212; color: #ffffff; margin: 0; padding: 15px; }
-        h2 { text-align: center; margin-top: 5px; }
-        
-        /* Controlli superiori */
-        .controls { background: #2a2a2a; padding: 10px; border-radius: 8px; margin-bottom: 15px; }
-        label { font-size: 14px; margin-right: 10px; }
-        select { padding: 5px; background: #333; color: white; border: 1px solid #555; margin-bottom: 10px; width: 100%; }
-        
-        /* Console di Log */
-        #log-console { 
-            background: #000; color: #00ff00; font-family: monospace; font-size: 12px;
-            height: 120px; overflow-y: auto; padding: 10px; border: 1px solid #444; border-radius: 5px; margin-bottom: 15px;
+        :root {
+            --bg: #121212;
+            --surface: #1e1e1e;
+            --primary: #2a9d8f;
+            --primary-dark: #21867a;
+            --accent: #e9c46a;
+            --text: #ffffff;
+            --text-muted: #aaaaaa;
         }
         
-        /* Griglia Pulsanti */
-        #button-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
-        .pad { 
-            background: #2a9d8f; border: 2px solid #21867a; padding: 20px 10px; 
-            font-size: 18px; color: white; border-radius: 8px; text-align: center; cursor: pointer;
-        }
-        .pad:active { background: #e9c46a; color: #000; }
-        .preset-number { font-size: 12px; opacity: 0.8; display: block; margin-top: 5px; }
+        * { box-sizing: border-box; }
+        body { font-family: sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        
+        /* HEADER: Stato MIDI */
+        header { background: #000; padding: 10px; border-bottom: 1px solid #333; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; font-size: 14px; }
+        .midi-controls { display: flex; gap: 10px; flex: 1; }
+        select { background: #333; color: white; border: 1px solid #555; padding: 5px; border-radius: 4px; }
+        #status-indicator { color: #ee9b00; font-weight: bold; }
+
+        /* CONTENITORE PRINCIPALE */
+        #main-container { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; }
+        
+        /* VISTA 1: Lista Concerti */
+        #view-concerts { display: none; flex-direction: column; gap: 15px; }
+        .concert-card { background: var(--surface); padding: 25px; border-radius: 12px; font-size: 20px; text-align: center; border: 2px solid #333; cursor: pointer; transition: 0.2s; }
+        .concert-card:active { border-color: var(--primary); background: #2a2a2a; }
+
+        /* VISTA 2: Modalità Live */
+        #view-live { display: none; flex-direction: column; height: 100%; }
+        .song-header { text-align: center; margin-bottom: 20px; }
+        .song-title { font-size: 28px; font-weight: bold; margin: 0; color: var(--accent); }
+        .song-index { font-size: 14px; color: var(--text-muted); }
+
+        #patches-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px; flex: 1; align-content: start; }
+        
+        .pad { background: var(--primary); border: 2px solid var(--primary-dark); padding: 30px 10px; font-size: 20px; color: white; border-radius: 12px; text-align: center; cursor: pointer; user-select: none; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        .pad:active { background: var(--accent); border-color: #f4a261; color: #000; transform: translateY(2px); }
+        .preset-number { font-size: 14px; opacity: 0.9; display: block; margin-top: 8px; font-family: monospace; }
+
+        /* NAVIGAZIONE INFERIORE */
+        .live-nav { display: flex; justify-content: space-between; padding-top: 15px; margin-top: auto; border-top: 1px solid #333; }
+        .nav-btn { background: var(--surface); color: white; border: 1px solid #555; padding: 15px 20px; border-radius: 8px; font-size: 16px; cursor: pointer; flex: 1; margin: 0 5px; text-align: center; }
+        .nav-btn:active { background: #444; }
+        .nav-btn.primary { background: #005f73; border-color: #0a9396; }
     </style>
 </head>
 <body>
 
-    <h2>Controllo Numa 2x</h2>
+    <header>
+        <div class="midi-controls">
+            <select id="midi-out-select"><option>Cerco tastiera...</option></select>
+            <select id="midi-channel">
+                <script>for(let i=0; i<16; i++) document.write(`<option value="${i}">CH ${i+1}</option>`);</script>
+            </select>
+        </div>
+        <div id="status-indicator">In attesa...</div>
+    </header>
 
-    <div class="controls">
-        <label>Uscita MIDI (Porta):</label>
-        <select id="midi-out-select"></select>
-        
-        <label>Canale MIDI:</label>
-        <select id="midi-channel">
-            <script>
-                for(let i=0; i<16; i++) {
-                    document.write(`<option value="${i}">Canale ${i+1}</option>`);
-                }
-            </script>
-        </select>
+    <div id="main-container">
+        <div id="view-concerts">
+            <h2 style="text-align:center; margin-top:0;">Seleziona Concerto</h2>
+            <div id="concerts-list"></div>
+        </div>
+
+        <div id="view-live">
+            <div class="song-header">
+                <h2 id="current-song-title" class="song-title">Titolo Canzone</h2>
+                <div id="song-counter" class="song-index">Brano 1 di X</div>
+            </div>
+            
+            <div id="patches-grid"></div>
+
+            <div class="live-nav">
+                <div class="nav-btn" onclick="changeSong(-1)">◄ Brano Prec</div>
+                <div class="nav-btn primary" onclick="showConcerts()">Cambia Live</div>
+                <div class="nav-btn" onclick="changeSong(1)">Brano Succ ►</div>
+            </div>
+        </div>
     </div>
 
-    <div id="log-console">Inizializzazione log...<br></div>
-    
-    <div id="button-container"></div>
-
     <script>
-        // LA TUA SCALETTA
-        const setlist = [
-            { nome: "Pianoforte", presetNum: 0 },
-            { nome: "Rhodes", presetNum: 1 },
-            { nome: "Strings", presetNum: 24 },
-            { nome: "Synth", presetNum: 40 }
-        ];
-
+        // ==========================================
+        // STATO DELL'APPLICAZIONE
+        // ==========================================
+        let database = null;
+        let activeConcert = null;
+        let currentSongIndex = 0;
         let globalMidiAccess = null;
 
-        // Funzione per scrivere nel riquadro nero
-        function logMsg(msg) {
-            const consoleDiv = document.getElementById('log-console');
-            const time = new Date().toLocaleTimeString();
-            consoleDiv.innerHTML += `[${time}] ${msg}<br>`;
-            consoleDiv.scrollTop = consoleDiv.scrollHeight; // Auto-scroll verso il basso
+        // ==========================================
+        // GESTIONE DATI (JSON)
+        // ==========================================
+        async function loadDatabase() {
+            try {
+                updateStatus("Caricamento scalette...", "#ee9b00");
+                // Attenzione: su file:/// locale la fetch fallisce per CORS. Su GitHub Pages funzionerà.
+                const response = await fetch('setlists.json'); 
+                if (!response.ok) throw new Error("File setlists.json non trovato");
+                
+                database = await response.json();
+                showConcerts();
+                updateStatus("Dati caricati", "#a7c957");
+            } catch (error) {
+                updateStatus("Errore JSON!", "#ae2012");
+                alert("Impossibile caricare setlists.json. Assicurati di aver pushato il file su GitHub e di usare la versione HTTPS.\n\n" + error.message);
+            }
         }
 
-        // Crea i bottoni
-        function renderizzaPulsanti() {
-            const container = document.getElementById('button-container');
-            setlist.forEach(suono => {
-                const btn = document.createElement('div');
-                btn.className = 'pad';
-                btn.innerHTML = `${suono.nome} <span class="preset-number">PC: ${suono.presetNum}</span>`;
-                btn.onclick = () => sendPC(suono.presetNum);
-                container.appendChild(btn);
+        // ==========================================
+        // GESTIONE INTERFACCIA UTENTE
+        // ==========================================
+        function showConcerts() {
+            document.getElementById('view-live').style.display = 'none';
+            document.getElementById('view-concerts').style.display = 'flex';
+            
+            const list = document.getElementById('concerts-list');
+            list.innerHTML = ''; // Svuota
+            
+            database.concerts.forEach((concert, index) => {
+                const card = document.createElement('div');
+                card.className = 'concert-card';
+                card.innerHTML = `<strong>${concert.name}</strong><br><small>${concert.songs.length} brani</small>`;
+                card.onclick = () => startConcert(index);
+                list.appendChild(card);
             });
         }
 
-        // Inizializza MIDI
+        function startConcert(concertIndex) {
+            activeConcert = database.concerts[concertIndex];
+            currentSongIndex = 0;
+            document.getElementById('view-concerts').style.display = 'none';
+            document.getElementById('view-live').style.display = 'flex';
+            renderCurrentSong();
+        }
+
+        function renderCurrentSong() {
+            const song = activeConcert.songs[currentSongIndex];
+            
+            // Aggiorna Intestazione
+            document.getElementById('current-song-title').innerText = song.title;
+            document.getElementById('song-counter').innerText = `Brano ${currentSongIndex + 1} di ${activeConcert.songs.length}`;
+
+            // Genera i Pad delle Patch
+            const grid = document.getElementById('patches-grid');
+            grid.innerHTML = '';
+            
+            if(song.patches && song.patches.length > 0) {
+                song.patches.forEach(patch => {
+                    const btn = document.createElement('div');
+                    btn.className = 'pad';
+                    btn.innerHTML = `${patch.name} <span class="preset-number">PC: ${patch.presetNum}</span>`;
+                    btn.onclick = () => sendPC(patch.presetNum);
+                    grid.appendChild(btn);
+                });
+            } else {
+                grid.innerHTML = '<div style="width:100%; text-align:center; color:#aaa;">Nessuna patch per questo brano.</div>';
+            }
+        }
+
+        function changeSong(direction) {
+            const newIndex = currentSongIndex + direction;
+            if (newIndex >= 0 && newIndex < activeConcert.songs.length) {
+                currentSongIndex = newIndex;
+                renderCurrentSong();
+            }
+        }
+
+        // ==========================================
+        // GESTIONE MIDI (Motore collaudato)
+        // ==========================================
         if (navigator.requestMIDIAccess) {
-            logMsg("Richiesta accesso WebMIDI...");
             navigator.requestMIDIAccess().then(onMIDISuccess, onMIDIFailure);
-        } else {
-            logMsg("ERRORE: WebMIDI non supportato!");
         }
 
         function onMIDISuccess(midiAccess) {
             globalMidiAccess = midiAccess;
-            logMsg("Accesso MIDI consentito.");
             aggiornaPorte();
-
-            // Ascolta se stacchi e riattacchi il cavo
-            midiAccess.onstatechange = function(e) {
-                logMsg(`Stato porta cambiato: ${e.port.name} (${e.port.state})`);
-                aggiornaPorte();
-            };
+            midiAccess.onstatechange = (e) => aggiornaPorte();
         }
 
-        function onMIDIFailure(err) {
-            logMsg("ERRORE: Accesso MIDI negato. " + err);
+        function onMIDIFailure() {
+            updateStatus("MIDI Negato", "#ae2012");
         }
 
-        // Trova tutte le uscite e le mette nel menu a tendina
         function aggiornaPorte() {
             const selectDiv = document.getElementById('midi-out-select');
-            selectDiv.innerHTML = ''; // Svuota la tendina
+            selectDiv.innerHTML = ''; 
             let count = 0;
 
             for (let output of globalMidiAccess.outputs.values()) {
@@ -121,47 +202,34 @@
                 option.value = output.id;
                 option.text = output.name;
                 selectDiv.appendChild(option);
-                logMsg(`Trovata uscita: ${output.name}`);
                 count++;
             }
-
-            if (count === 0) {
-                logMsg("ATTENZIONE: Nessuna tastiera trovata!");
-                const opt = document.createElement('option');
-                opt.text = "Nessuna porta MIDI";
-                selectDiv.appendChild(opt);
-            }
+            if (count === 0) selectDiv.innerHTML = '<option>Nessuna tastiera</option>';
         }
 
-        // Invia il messaggio
         function sendPC(presetNumber) {
-            if (!globalMidiAccess) {
-                logMsg("Errore: Sistema MIDI non pronto.");
-                return;
-            }
-
+            if (!globalMidiAccess) return;
             const portId = document.getElementById('midi-out-select').value;
             const outputPort = globalMidiAccess.outputs.get(portId);
-
-            if (!outputPort) {
-                logMsg("Errore: Porta uscita non valida.");
-                return;
-            }
-
-            // Calcola il comando. 0xC0 è Program Change. Aggiungiamo l'offset del canale.
-            const channelOffset = parseInt(document.getElementById('midi-channel').value);
-            const statusByte = 0xC0 + channelOffset; 
-
-            try {
+            
+            if (outputPort) {
+                const channelOffset = parseInt(document.getElementById('midi-channel').value);
+                const statusByte = 0xC0 + channelOffset; 
                 outputPort.send([statusByte, presetNumber]);
-                // Stampa a video i valori esadecimali e decimali inviati
-                logMsg(`INVIATO -> Porta: ${outputPort.name} | Canale: ${channelOffset + 1} | Byte: [0x${statusByte.toString(16).toUpperCase()}, ${presetNumber}]`);
-            } catch (err) {
-                logMsg("ERRORE IN INVIO: " + err);
+                updateStatus(`Inviato PC ${presetNumber}`, "#a7c957");
+                setTimeout(() => updateStatus("Pronto", "#a7c957"), 1000);
             }
         }
 
-        renderizzaPulsanti();
+        function updateStatus(text, color) {
+            const ind = document.getElementById('status-indicator');
+            ind.innerText = text;
+            ind.style.color = color;
+        }
+
+        // Avvia l'applicazione caricando il database
+        window.onload = loadDatabase;
+
     </script>
 </body>
 </html>
