@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#121212">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <title>Setlist Debug Numa</title>
+    <style>
+        body { font-family: sans-serif; background: #121212; color: #ffffff; margin: 0; padding: 15px; }
+        h2 { text-align: center; margin-top: 5px; }
+        
+        /* Controlli superiori */
+        .controls { background: #2a2a2a; padding: 10px; border-radius: 8px; margin-bottom: 15px; }
+        label { font-size: 14px; margin-right: 10px; }
+        select { padding: 5px; background: #333; color: white; border: 1px solid #555; margin-bottom: 10px; width: 100%; }
+        
+        /* Console di Log */
+        #log-console { 
+            background: #000; color: #00ff00; font-family: monospace; font-size: 12px;
+            height: 120px; overflow-y: auto; padding: 10px; border: 1px solid #444; border-radius: 5px; margin-bottom: 15px;
+        }
+        
+        /* Griglia Pulsanti */
+        #button-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+        .pad { 
+            background: #2a9d8f; border: 2px solid #21867a; padding: 20px 10px; 
+            font-size: 18px; color: white; border-radius: 8px; text-align: center; cursor: pointer;
+        }
+        .pad:active { background: #e9c46a; color: #000; }
+        .preset-number { font-size: 12px; opacity: 0.8; display: block; margin-top: 5px; }
+    </style>
+</head>
+<body>
+
+    <h2>Controllo Numa 2x</h2>
+
+    <div class="controls">
+        <label>Uscita MIDI (Porta):</label>
+        <select id="midi-out-select"></select>
+        
+        <label>Canale MIDI:</label>
+        <select id="midi-channel">
+            <script>
+                for(let i=0; i<16; i++) {
+                    document.write(`<option value="${i}">Canale ${i+1}</option>`);
+                }
+            </script>
+        </select>
+    </div>
+
+    <div id="log-console">Inizializzazione log...<br></div>
+    
+    <div id="button-container"></div>
+
+    <script>
+        // LA TUA SCALETTA
+        const setlist = [
+            { nome: "Pianoforte", presetNum: 0 },
+            { nome: "Rhodes", presetNum: 1 },
+            { nome: "Strings", presetNum: 24 },
+            { nome: "Synth", presetNum: 40 }
+        ];
+
+        let globalMidiAccess = null;
+
+        // Funzione per scrivere nel riquadro nero
+        function logMsg(msg) {
+            const consoleDiv = document.getElementById('log-console');
+            const time = new Date().toLocaleTimeString();
+            consoleDiv.innerHTML += `[${time}] ${msg}<br>`;
+            consoleDiv.scrollTop = consoleDiv.scrollHeight; // Auto-scroll verso il basso
+        }
+
+        // Crea i bottoni
+        function renderizzaPulsanti() {
+            const container = document.getElementById('button-container');
+            setlist.forEach(suono => {
+                const btn = document.createElement('div');
+                btn.className = 'pad';
+                btn.innerHTML = `${suono.nome} <span class="preset-number">PC: ${suono.presetNum}</span>`;
+                btn.onclick = () => sendPC(suono.presetNum);
+                container.appendChild(btn);
+            });
+        }
+
+        // Inizializza MIDI
+        if (navigator.requestMIDIAccess) {
+            logMsg("Richiesta accesso WebMIDI...");
+            navigator.requestMIDIAccess().then(onMIDISuccess, onMIDIFailure);
+        } else {
+            logMsg("ERRORE: WebMIDI non supportato!");
+        }
+
+        function onMIDISuccess(midiAccess) {
+            globalMidiAccess = midiAccess;
+            logMsg("Accesso MIDI consentito.");
+            aggiornaPorte();
+
+            // Ascolta se stacchi e riattacchi il cavo
+            midiAccess.onstatechange = function(e) {
+                logMsg(`Stato porta cambiato: ${e.port.name} (${e.port.state})`);
+                aggiornaPorte();
+            };
+        }
+
+        function onMIDIFailure(err) {
+            logMsg("ERRORE: Accesso MIDI negato. " + err);
+        }
+
+        // Trova tutte le uscite e le mette nel menu a tendina
+        function aggiornaPorte() {
+            const selectDiv = document.getElementById('midi-out-select');
+            selectDiv.innerHTML = ''; // Svuota la tendina
+            let count = 0;
+
+            for (let output of globalMidiAccess.outputs.values()) {
+                const option = document.createElement('option');
+                option.value = output.id;
+                option.text = output.name;
+                selectDiv.appendChild(option);
+                logMsg(`Trovata uscita: ${output.name}`);
+                count++;
+            }
+
+            if (count === 0) {
+                logMsg("ATTENZIONE: Nessuna tastiera trovata!");
+                const opt = document.createElement('option');
+                opt.text = "Nessuna porta MIDI";
+                selectDiv.appendChild(opt);
+            }
+        }
+
+        // Invia il messaggio
+        function sendPC(presetNumber) {
+            if (!globalMidiAccess) {
+                logMsg("Errore: Sistema MIDI non pronto.");
+                return;
+            }
+
+            const portId = document.getElementById('midi-out-select').value;
+            const outputPort = globalMidiAccess.outputs.get(portId);
+
+            if (!outputPort) {
+                logMsg("Errore: Porta uscita non valida.");
+                return;
+            }
+
+            // Calcola il comando. 0xC0 è Program Change. Aggiungiamo l'offset del canale.
+            const channelOffset = parseInt(document.getElementById('midi-channel').value);
+            const statusByte = 0xC0 + channelOffset; 
+
+            try {
+                outputPort.send([statusByte, presetNumber]);
+                // Stampa a video i valori esadecimali e decimali inviati
+                logMsg(`INVIATO -> Porta: ${outputPort.name} | Canale: ${channelOffset + 1} | Byte: [0x${statusByte.toString(16).toUpperCase()}, ${presetNumber}]`);
+            } catch (err) {
+                logMsg("ERRORE IN INVIO: " + err);
+            }
+        }
+
+        renderizzaPulsanti();
+    </script>
+</body>
+</html>
