@@ -284,7 +284,7 @@
         }
 
         // ==========================================
-        // GESTIONE MIDI (Motore collaudato)
+        // GESTIONE MIDI (Motore collaudato con Input Monitor)
         // ==========================================
         if (navigator.requestMIDIAccess) {
             navigator.requestMIDIAccess().then(onMIDISuccess, onMIDIFailure);
@@ -304,6 +304,11 @@
             
             termBody.appendChild(entry);
             
+            // Evita l'accumulo di troppi log per mantenere fluide le performance
+            while (termBody.children.length > 100) {
+                termBody.removeChild(termBody.firstChild);
+            }
+            
             // Auto scroll to bottom
             termBody.scrollTop = termBody.scrollHeight;
         }
@@ -315,12 +320,87 @@
             }
         }
 
+        function getNoteName(midiNote) {
+            const notes = ["Do", "Do#", "Re", "Re#", "Mi", "Fa", "Fa#", "Sol", "Sol#", "La", "La#", "Si"];
+            const octave = Math.floor(midiNote / 12) - 1;
+            const note = notes[midiNote % 12];
+            return `${note}${octave}`;
+        }
+
+        function handleMidiInputMessage(event) {
+            const data = event.data;
+            if (!data || data.length === 0) return;
+            
+            const statusByte = data[0];
+            const channel = (statusByte & 0x0F) + 1;
+            const messageType = statusByte & 0xF0;
+            
+            const hexBytes = Array.from(data).map(b => "0x" + b.toString(16).toUpperCase().padStart(2, '0')).join(', ');
+            
+            let infoStr = "";
+            let logType = "info";
+            
+            // Filtra i messaggi ad alta frequenza come MIDI Clock (0xF8) e Active Sensing (0xFE)
+            if (statusByte === 0xF8 || statusByte === 0xFE) return;
+            
+            if (messageType === 0x90 && data[2] > 0) {
+                // Note On
+                const noteName = getNoteName(data[1]);
+                infoStr = `RX: Note On - Ch ${channel} | Nota: ${noteName} (${data[1]}), Vel: ${data[2]}`;
+            } else if (messageType === 0x80 || (messageType === 0x90 && data[2] === 0)) {
+                // Note Off
+                const noteName = getNoteName(data[1]);
+                infoStr = `RX: Note Off - Ch ${channel} | Nota: ${noteName} (${data[1]})`;
+            } else if (messageType === 0xB0) {
+                // Control Change
+                const ccNumber = data[1];
+                const ccValue = data[2];
+                let ccName = `CC #${ccNumber}`;
+                if (ccNumber === 7) {
+                    ccName = "Volume generale (CC #7)";
+                    logType = "warning"; // Colore arancione evidenziato
+                } else if (ccNumber === 11) {
+                    ccName = "Espressione (CC #11)";
+                    logType = "warning";
+                } else if (ccNumber === 64) {
+                    ccName = "Pedale Sustain (CC #64)";
+                } else if (ccNumber === 1) {
+                    ccName = "Modulation Wheel (CC #1)";
+                }
+                infoStr = `RX: ${ccName} - Ch ${channel} | Valore: ${ccValue}`;
+            } else if (messageType === 0xC0) {
+                // Program Change
+                infoStr = `RX: Program Change - Ch ${channel} | PC: ${data[1]}`;
+                logType = "system";
+            } else if (messageType === 0xE0) {
+                // Pitch Bend
+                const val = data[1] + (data[2] << 7);
+                infoStr = `RX: Pitch Bend - Ch ${channel} | Valore: ${val}`;
+            } else {
+                infoStr = `RX: Messaggio 0x${statusByte.toString(16).toUpperCase()} - Ch ${channel}`;
+                logType = "system";
+            }
+            
+            logToTerminal(`${infoStr} <span style="color: #555566; font-size: 11px; font-family: monospace;">[${hexBytes}]</span>`, logType);
+        }
+
+        function collegaInputMidi() {
+            if (!globalMidiAccess) return;
+            let inputsCount = 0;
+            for (let input of globalMidiAccess.inputs.values()) {
+                input.onmidimessage = handleMidiInputMessage;
+                inputsCount++;
+            }
+        }
+
         function onMIDISuccess(midiAccess) {
             globalMidiAccess = midiAccess;
             aggiornaPorte();
+            collegaInputMidi();
             logToTerminal("Accesso MIDI configurato con successo.", "system");
             midiAccess.onstatechange = (e) => {
                 aggiornaPorte();
+                collegaInputMidi();
                 logToTerminal(`Porta MIDI modificata: ${e.port.name} (${e.port.state})`, "info");
             };
         }
