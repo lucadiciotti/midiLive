@@ -212,7 +212,7 @@
             try {
                 updateStatus("Caricamento scalette...", "#ee9b00");
                 // Attenzione: su file:/// locale la fetch fallisce per CORS. Su GitHub Pages funzionerà.
-                const response = await fetch('setlists.json'); 
+                const response = await fetch('setlists.json?_t=' + Date.now()); 
                 if (!response.ok) throw new Error("File setlists.json non trovato");
                 
                 database = await response.json();
