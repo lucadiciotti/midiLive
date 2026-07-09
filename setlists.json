@@ -9,15 +9,15 @@
           "patches": [
             {
               "name": "Synth Pad Lento",
-              "presetNum": 18
+              "presetNum": 29
             },
             {
-              "name": "Synth Lead",
-              "presetNum": 42
+              "name": "Organo Drawbar",
+              "presetNum": 86
             },
             {
               "name": "Pianoforte",
-              "presetNum": 0
+              "presetNum": 2
             }
           ]
         },
@@ -25,16 +25,16 @@
           "title": "Amore di Plastica",
           "patches": [
             {
-              "name": "Piano Rhodes",
-              "presetNum": 5
+              "name": "Piano Tappeto",
+              "presetNum": 3
             },
             {
-              "name": "Organo Hammond",
-              "presetNum": 10
+              "name": "Organo Drawbar",
+              "presetNum": 86
             },
             {
-              "name": "Synth Strings",
-              "presetNum": 20
+              "name": "Piano",
+              "presetNum": 85
             }
           ]
         },
@@ -43,7 +43,7 @@
           "patches": [
             {
               "name": "Pianoforte Acustico",
-              "presetNum": 0
+              "presetNum": 2
             },
             {
               "name": "Warm Pad",
