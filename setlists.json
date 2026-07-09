@@ -5,19 +5,36 @@
       "name": "Tour Estivo - Rock set",
       "songs": [
         {
-          "title": "Bruci la città",
+          "title": "Il Mare d'Inverno",
           "patches": [
             {
+              "name": "Pianoforte Acustico",
+              "presetNum": 0
+            },
+            {
               "name": "Synth Pad Lento",
-              "presetNum": 28
+              "presetNum": 18
             },
             {
-              "name": "Organo Drawbar",
-              "presetNum": 85
-            },
+              "name": "Orchestra d'Archi",
+              "presetNum": 16
+            }
+          ]
+        },
+        {
+          "title": "L'Amore Si Odia",
+          "patches": [
             {
-              "name": "Pianoforte",
+              "name": "Pianoforte Acustico",
               "presetNum": 1
+            },
+            {
+              "name": "Warm Pad",
+              "presetNum": 25
+            },
+            {
+              "name": "Orchestra d'Archi",
+              "presetNum": 16
             }
           ]
         },
@@ -56,6 +73,23 @@
           ]
         },
         {
+          "title": "Bruci la città",
+          "patches": [
+            {
+              "name": "Synth Pad Lento",
+              "presetNum": 28
+            },
+            {
+              "name": "Organo Drawbar",
+              "presetNum": 85
+            },
+            {
+              "name": "Pianoforte",
+              "presetNum": 1
+            }
+          ]
+        },
+        {
           "title": "Gli Ostacoli del Cuore",
           "patches": [
             {
@@ -69,40 +103,6 @@
             {
               "name": "Riff di Synth",
               "presetNum": 35
-            }
-          ]
-        },
-        {
-          "title": "Primavera",
-          "patches": [
-            {
-              "name": "Piano Rhodes",
-              "presetNum": 5
-            },
-            {
-              "name": "Synth Brass/Strings",
-              "presetNum": 21
-            },
-            {
-              "name": "Organo Rock",
-              "presetNum": 12
-            }
-          ]
-        },
-        {
-          "title": "Senza Pietà",
-          "patches": [
-            {
-              "name": "Gran Piano",
-              "presetNum": 0
-            },
-            {
-              "name": "Orchestra d'Archi",
-              "presetNum": 16
-            },
-            {
-              "name": "Pad Atmosferico",
-              "presetNum": 26
             }
           ]
         },
@@ -141,6 +141,23 @@
           ]
         },
         {
+          "title": "Primavera",
+          "patches": [
+            {
+              "name": "Piano Rhodes",
+              "presetNum": 5
+            },
+            {
+              "name": "Synth Brass/Strings",
+              "presetNum": 21
+            },
+            {
+              "name": "Organo Rock",
+              "presetNum": 12
+            }
+          ]
+        },
+        {
           "title": "Oggi Sono Io",
           "patches": [
             {
@@ -175,19 +192,19 @@
           ]
         },
         {
-          "title": "Il Mare d'Inverno",
+          "title": "Senza Pietà",
           "patches": [
             {
-              "name": "Pianoforte Acustico",
+              "name": "Gran Piano",
               "presetNum": 0
-            },
-            {
-              "name": "Synth Pad Lento",
-              "presetNum": 18
             },
             {
               "name": "Orchestra d'Archi",
               "presetNum": 16
+            },
+            {
+              "name": "Pad Atmosferico",
+              "presetNum": 26
             }
           ]
         }
