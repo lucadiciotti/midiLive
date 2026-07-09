@@ -31,13 +31,13 @@
         #main-container { flex: 1; padding: 15px; display: flex; flex-direction: column; overflow: hidden; }
         
         /* VISTA 1: Lista Concerti */
-        #view-concerts { display: none; flex-direction: column; gap: 15px; flex: 1; overflow-y: auto; }
+        #view-concerts { display: none; flex-direction: column; gap: 15px; height: 67%; overflow-y: auto; min-height: 0; }
         .concert-card { background: var(--surface); padding: 25px; border-radius: 12px; font-size: 20px; text-align: center; border: 2px solid #333; cursor: pointer; transition: 0.2s; }
         .concert-card:active { border-color: var(--primary); background: #2a2a2a; }
 
         /* VISTA 2: Modalità Live */
-        #view-live { display: none; flex-direction: column; flex: 1; overflow: hidden; height: 100%; }
-        .live-controls-wrapper { height: 67%; display: flex; flex-direction: column; min-height: 0; }
+        #view-live { display: none; flex-direction: column; height: 67%; overflow: hidden; min-height: 0; }
+        .live-controls-wrapper { height: 100%; display: flex; flex-direction: column; min-height: 0; }
         .song-header { text-align: center; margin-bottom: 15px; }
         .song-title { font-size: 28px; font-weight: bold; margin: 0; color: var(--accent); }
         .song-index { font-size: 14px; color: var(--text-muted); }
@@ -186,15 +186,15 @@
                     <div class="nav-btn" onclick="changeSong(1)">Brano Succ ►</div>
                 </div>
             </div>
-            
-            <div class="terminal-wrapper">
-                <div class="terminal-header">
-                    <span class="terminal-title">MIDI MONITOR LOG</span>
-                    <button class="terminal-clear" onclick="clearTerminal()">CANCELLA</button>
-                </div>
-                <div id="terminal-body" class="terminal-body">
-                    <div class="terminal-line system"><span class="term-time"></span>Terminale pronto. In attesa di comandi MIDI...</div>
-                </div>
+        </div>
+
+        <div class="terminal-wrapper">
+            <div class="terminal-header">
+                <span class="terminal-title">MIDI MONITOR LOG</span>
+                <button class="terminal-clear" onclick="clearTerminal()">CANCELLA</button>
+            </div>
+            <div id="terminal-body" class="terminal-body">
+                <div class="terminal-line system"><span class="term-time"></span>Terminale pronto. In attesa di comandi MIDI...</div>
             </div>
         </div>
     </div>
@@ -203,7 +203,7 @@
         // ==========================================
         // STATO DELL'APPLICAZIONE
         // ==========================================
-        const APP_VERSION = "2026.07.09-2206";
+        const APP_VERSION = "2026.07.09-2213";
         let database = null;
         let activeConcert = null;
         let currentSongIndex = 0;
@@ -290,8 +290,14 @@
         // ==========================================
         // GESTIONE MIDI (Motore collaudato con Input Monitor)
         // ==========================================
-        if (navigator.requestMIDIAccess) {
-            navigator.requestMIDIAccess().then(onMIDISuccess, onMIDIFailure);
+        function inizializzaMidi() {
+            logToTerminal("Tentativo di connessione MIDI in corso...", "system");
+            if (navigator.requestMIDIAccess) {
+                navigator.requestMIDIAccess().then(onMIDISuccess, onMIDIFailure);
+            } else {
+                updateStatus("MIDI Non Supportato", "#ae2012");
+                logToTerminal("Errore: Il browser non supporta Web MIDI API.", "error");
+            }
         }
 
         // ==========================================
@@ -418,6 +424,7 @@
         let lastMidiOutputsHash = "";
         function aggiornaPorte() {
             const selectDiv = document.getElementById('midi-out-select');
+            if (!selectDiv) return;
             selectDiv.innerHTML = ''; 
             let count = 0;
             let outputNames = [];
@@ -497,6 +504,7 @@
                 versionEl.innerText = `v${APP_VERSION}`;
             }
             loadDatabase();
+            inizializzaMidi();
         };
 
     </script>
