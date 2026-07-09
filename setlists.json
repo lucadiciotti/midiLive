@@ -9,15 +9,15 @@
           "patches": [
             {
               "name": "Synth Pad Lento",
-              "presetNum": 29
+              "presetNum": 28
             },
             {
               "name": "Organo Drawbar",
-              "presetNum": 86
+              "presetNum": 85
             },
             {
               "name": "Pianoforte",
-              "presetNum": 2
+              "presetNum": 1
             }
           ]
         },
@@ -30,11 +30,11 @@
             },
             {
               "name": "Organo Drawbar",
-              "presetNum": 86
+              "presetNum": 85
             },
             {
               "name": "Piano",
-              "presetNum": 85
+              "presetNum": 86
             }
           ]
         },
@@ -43,7 +43,7 @@
           "patches": [
             {
               "name": "Pianoforte Acustico",
-              "presetNum": 2
+              "presetNum": 1
             },
             {
               "name": "Warm Pad",
