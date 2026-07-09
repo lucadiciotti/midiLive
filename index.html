@@ -46,6 +46,7 @@
         
         .pad { background: var(--primary); border: 2px solid var(--primary-dark); padding: 20px 10px; font-size: 20px; color: white; border-radius: 12px; text-align: center; cursor: pointer; user-select: none; box-shadow: 0 4px 6px rgba(0,0,0,0.3); transition: transform 0.1s, background-color 0.2s; }
         .pad:active { background: var(--accent); border-color: #f4a261; color: #000; transform: translateY(2px); }
+        .pad.active { background: var(--accent); border-color: #f4a261; color: #000; box-shadow: 0 0 12px var(--accent); }
         .preset-number { font-size: 14px; opacity: 0.9; display: block; margin-top: 8px; font-family: monospace; }
 
         /* NAVIGAZIONE INFERIORE */
@@ -204,11 +205,12 @@
         // ==========================================
         // STATO DELL'APPLICAZIONE
         // ==========================================
-        const APP_VERSION = "2026.07.09-2225";
+        const APP_VERSION = "2026.07.09-2239";
         let database = null;
         let activeConcert = null;
         let currentSongIndex = 0;
         let globalMidiAccess = null;
+        let activePresetNum = null;
 
         // ==========================================
         // GESTIONE DATI (JSON)
@@ -251,6 +253,7 @@
         function startConcert(concertIndex) {
             activeConcert = database.concerts[concertIndex];
             currentSongIndex = 0;
+            activePresetNum = null;
             document.getElementById('view-concerts').style.display = 'none';
             document.getElementById('view-live').style.display = 'flex';
             renderCurrentSong();
@@ -271,8 +274,15 @@
                 song.patches.forEach(patch => {
                     const btn = document.createElement('div');
                     btn.className = 'pad';
+                    btn.id = `patch-pad-${patch.presetNum}`;
                     btn.innerHTML = `${patch.name} <span class="preset-number">PC: ${patch.presetNum}</span>`;
-                    btn.onclick = () => sendPC(patch.presetNum);
+                    btn.onclick = () => {
+                        sendPC(patch.presetNum);
+                        selezionaPadGUI(patch.presetNum);
+                    };
+                    if (activePresetNum === patch.presetNum) {
+                        btn.classList.add('active');
+                    }
                     grid.appendChild(btn);
                 });
             } else {
@@ -284,7 +294,32 @@
             const newIndex = currentSongIndex + direction;
             if (newIndex >= 0 && newIndex < activeConcert.songs.length) {
                 currentSongIndex = newIndex;
+                activePresetNum = null;
                 renderCurrentSong();
+            }
+        }
+
+        function selezionaPadGUI(presetNum) {
+            activePresetNum = presetNum;
+            const pads = document.querySelectorAll('.pad');
+            pads.forEach(pad => pad.classList.remove('active'));
+            const activePad = document.getElementById(`patch-pad-${presetNum}`);
+            if (activePad) {
+                activePad.classList.add('active');
+            }
+        }
+
+        function sincronizzaMidiInputConGUI(presetNum) {
+            if (!activeConcert || !activeConcert.songs[currentSongIndex]) return;
+            const song = activeConcert.songs[currentSongIndex];
+            const patch = song.patches.find(p => p.presetNum === presetNum);
+            if (patch) {
+                selezionaPadGUI(presetNum);
+                logToTerminal(`Sincronizzazione GUI: Rilevata selezione di "${patch.name}" (PC ${presetNum}) dalla tastiera.`, "info");
+            } else {
+                activePresetNum = null;
+                const pads = document.querySelectorAll('.pad');
+                pads.forEach(pad => pad.classList.remove('active'));
             }
         }
 
@@ -384,6 +419,7 @@
                 const displayedPC = data[1] + 1;
                 infoStr = `RX: Program Change - Ch ${channel} | PC: ${displayedPC}`;
                 logType = "system";
+                sincronizzaMidiInputConGUI(displayedPC);
             } else if (messageType === 0xE0) {
                 // Pitch Bend
                 const val = data[1] + (data[2] << 7);
