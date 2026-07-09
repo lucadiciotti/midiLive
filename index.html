@@ -370,7 +370,8 @@
                 infoStr = `RX: ${ccName} - Ch ${channel} | Valore: ${ccValue}`;
             } else if (messageType === 0xC0) {
                 // Program Change
-                infoStr = `RX: Program Change - Ch ${channel} | PC: ${data[1]}`;
+                const displayedPC = data[1] + 1;
+                infoStr = `RX: Program Change - Ch ${channel} | PC: ${displayedPC}`;
                 logType = "system";
             } else if (messageType === 0xE0) {
                 // Pitch Bend
@@ -463,10 +464,13 @@
             if (outputPort) {
                 const channelOffset = parseInt(document.getElementById('midi-channel').value);
                 const statusByte = 0xC0 + channelOffset; 
-                outputPort.send([statusByte, presetNumber]);
+                
+                // Mappa il numero di preset (1-indexed nel file) a MIDI Program Change (0-indexed)
+                const midiValue = Math.max(0, Math.min(127, presetNumber - 1));
+                outputPort.send([statusByte, midiValue]);
                 
                 const hexStatus = "0x" + statusByte.toString(16).toUpperCase();
-                const hexPreset = "0x" + presetNumber.toString(16).toUpperCase().padStart(2, '0');
+                const hexPreset = "0x" + midiValue.toString(16).toUpperCase().padStart(2, '0');
                 logToTerminal(`TX: [${hexStatus}, ${hexPreset}] - Canale ${channelOffset + 1} - PC ${presetNumber} ("${patchName}") -> ${outputPort.name}`, "success");
                 
                 updateStatus(`Inviato PC ${presetNumber}`, "#a7c957");
