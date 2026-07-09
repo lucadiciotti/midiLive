@@ -159,7 +159,10 @@
                 <script>for(let i=0; i<16; i++) document.write(`<option value="${i}">CH ${i+1}</option>`);</script>
             </select>
         </div>
-        <div id="status-indicator">In attesa...</div>
+        <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px;">
+            <div id="status-indicator">In attesa...</div>
+            <div id="app-version" style="font-size: 10px; color: #666; font-family: monospace; letter-spacing: 0.5px;">v0.0.0</div>
+        </div>
     </header>
 
     <div id="main-container">
@@ -200,6 +203,7 @@
         // ==========================================
         // STATO DELL'APPLICAZIONE
         // ==========================================
+        const APP_VERSION = "2026.07.09-2206";
         let database = null;
         let activeConcert = null;
         let currentSongIndex = 0;
@@ -487,7 +491,13 @@
         }
 
         // Avvia l'applicazione caricando il database
-        window.onload = loadDatabase;
+        window.onload = () => {
+            const versionEl = document.getElementById('app-version');
+            if (versionEl) {
+                versionEl.innerText = `v${APP_VERSION}`;
+            }
+            loadDatabase();
+        };
 
     </script>
 </body>
