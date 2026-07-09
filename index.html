@@ -204,7 +204,7 @@
         // ==========================================
         // STATO DELL'APPLICAZIONE
         // ==========================================
-        const APP_VERSION = "2026.07.09-2217";
+        const APP_VERSION = "2026.07.09-2225";
         let database = null;
         let activeConcert = null;
         let currentSongIndex = 0;
@@ -427,9 +427,10 @@
             };
         }
 
-        function onMIDIFailure() {
+        function onMIDIFailure(error) {
             updateStatus("MIDI Negato", "#ae2012");
-            logToTerminal("Impossibile accedere ai dispositivi MIDI. Clicca sul pulsante 'CONNETTI MIDI' in alto per abilitare i permessi.", "error");
+            const details = error ? ` (${error.name || error.message || error})` : "";
+            logToTerminal(`Impossibile accedere ai dispositivi MIDI${details}. Clicca sul pulsante 'CONNETTI MIDI' in alto per abilitare i permessi.`, "error");
             
             const connBtn = document.getElementById('btn-connetti-midi');
             if (connBtn) {
