@@ -8,8 +8,8 @@
           "title": "Il Mare d'Inverno",
           "patches": [
             {
-              "name": "Pianoforte Acustico",
-              "presetNum": 0
+              "name": "Pianoforte Acustico con Pad",
+              "presetNum": 3
             },
             {
               "name": "Synth Pad Lento",
@@ -42,7 +42,7 @@
           "title": "Amore di Plastica",
           "patches": [
             {
-              "name": "Piano Tappeto",
+              "name": "Pianoforte Acustico con Pad",
               "presetNum": 3
             },
             {
@@ -93,12 +93,12 @@
           "title": "Gli Ostacoli del Cuore",
           "patches": [
             {
-              "name": "Piano & Archi",
-              "presetNum": 15
+              "name": "Jazz Vibes",
+              "presetNum": 9
             },
             {
               "name": "Organo Hammond",
-              "presetNum": 11
+              "presetNum": 85
             },
             {
               "name": "Riff di Synth",
@@ -110,8 +110,8 @@
           "title": "Il Mondo Prima di Te",
           "patches": [
             {
-              "name": "Pianoforte Acustico",
-              "presetNum": 0
+              "name": "Pianoforte Acustico con Pad",
+              "presetNum": 3
             },
             {
               "name": "Synth Pad Brillante",
@@ -144,16 +144,16 @@
           "title": "Primavera",
           "patches": [
             {
-              "name": "Piano Rhodes",
-              "presetNum": 5
+              "name": "Pianoforte Acustico con Pad",
+              "presetNum": 3
             },
             {
               "name": "Synth Brass/Strings",
               "presetNum": 21
             },
             {
-              "name": "Organo Rock",
-              "presetNum": 12
+              "name": "Pianoforte Acustico con Pad",
+              "presetNum": 3
             }
           ]
         },
@@ -161,8 +161,8 @@
           "title": "Oggi Sono Io",
           "patches": [
             {
-              "name": "Piano Rhodes",
-              "presetNum": 5
+              "name": "Pianoforte Acustico",
+              "presetNum": 1
             },
             {
               "name": "Strings Pad",
@@ -178,16 +178,16 @@
           "title": "Acqua e Sale",
           "patches": [
             {
-              "name": "Piano Rhodes",
-              "presetNum": 5
+              "name": "Drawbars",
+              "presetNum": 85
             },
             {
-              "name": "Archi e Pad",
-              "presetNum": 23
+              "name": "Soloist",
+              "presetNum": 86
             },
             {
               "name": "Acoustic Piano",
-              "presetNum": 0
+              "presetNum": 1
             }
           ]
         },
@@ -195,16 +195,16 @@
           "title": "Senza Pietà",
           "patches": [
             {
-              "name": "Gran Piano",
-              "presetNum": 0
+              "name": "Electric Piano",
+              "presetNum": 86
             },
             {
-              "name": "Orchestra d'Archi",
-              "presetNum": 16
+              "name": "Supersolo",
+              "presetNum": 22
             },
             {
-              "name": "Pad Atmosferico",
-              "presetNum": 26
+              "name": "Stelly",
+              "presetNum": 36
             }
           ]
         }
