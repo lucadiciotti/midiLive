@@ -212,11 +212,24 @@
         </div>
     </div>
 
+    <!-- Modal per l'inserimento del nome della patch -->
+    <div id="patch-name-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.75); z-index: 2000; justify-content: center; align-items: center; backdrop-filter: blur(4px);">
+        <div style="background: var(--surface); border: 2px solid var(--primary-dark); padding: 25px; border-radius: 16px; width: 90%; max-width: 400px; box-shadow: 0 10px 25px rgba(0,0,0,0.6); text-align: center;">
+            <h3 style="margin-top: 0; color: var(--accent); font-size: 22px; font-family: Outfit, sans-serif;" id="modal-title">Nuovo Suono Rilevato</h3>
+            <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 20px; line-height: 1.4;" id="modal-subtitle">Inserisci il nome per il preset</p>
+            <input type="text" id="modal-input-name" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #444; background: #222; color: #fff; font-size: 16px; margin-bottom: 25px; box-sizing: border-box; text-align: center;" placeholder="Nome del preset (es. Piano e Pad)">
+            <div style="display: flex; justify-content: space-between; gap: 15px;">
+                <button onclick="chiudiModalPatch(false)" style="flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #555; background: transparent; color: #fff; cursor: pointer; font-size: 14px; transition: background 0.2s;">Annulla</button>
+                <button onclick="chiudiModalPatch(true)" style="flex: 1; padding: 12px; border-radius: 8px; border: none; background: var(--accent); color: #000; font-weight: bold; cursor: pointer; font-size: 14px; transition: background 0.2s;">Conferma</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // ==========================================
         // STATO DELL'APPLICAZIONE
         // ==========================================
-        const APP_VERSION = "2026.07.14-2311";
+        const APP_VERSION = "2026.07.14-2315";
         let database = null;
         let activeConcert = null;
         let currentSongIndex = 0;
@@ -836,7 +849,48 @@
 
         function onKeyboardSelectChange() {
             checkAndMigrateLocalLookup();
-            renderCurrentSong();
+            if (activeConcert) {
+                renderCurrentSong();
+            }
+        }
+
+        function chiediNomePatch(presetNum, keyboardName) {
+            return new Promise((resolve) => {
+                const modal = document.getElementById('patch-name-modal');
+                const title = document.getElementById('modal-title');
+                const subtitle = document.getElementById('modal-subtitle');
+                const input = document.getElementById('modal-input-name');
+                
+                title.innerText = "Nuovo Suono Rilevato";
+                subtitle.innerText = `Inserisci il nome per il preset ${presetNum} di "${keyboardName}":`;
+                input.value = "";
+                modal.style.display = 'flex';
+                input.focus();
+                
+                // Gestione tasti di invio o fuga
+                input.onkeydown = (e) => {
+                    if (e.key === "Enter") {
+                        chiudiModalPatch(true);
+                    } else if (e.key === "Escape") {
+                        chiudiModalPatch(false);
+                    }
+                };
+                
+                window.modalResolve = (confermato) => {
+                    modal.style.display = 'none';
+                    if (confermato) {
+                        resolve(input.value.trim());
+                    } else {
+                        resolve(null);
+                    }
+                };
+            });
+        }
+        
+        function chiudiModalPatch(confermato) {
+            if (window.modalResolve) {
+                window.modalResolve(confermato);
+            }
         }
  
          // ==========================================
@@ -995,6 +1049,7 @@
 
         let lastMidiOutputsHash = "";
         function aggiornaPorte() {
+            if (!globalMidiAccess) return;
             const selectDiv = document.getElementById('midi-out-select');
             if (!selectDiv) return;
             selectDiv.innerHTML = ''; 
@@ -1019,7 +1074,9 @@
                 
                 // Esegui la migrazione dei dati locali per il dispositivo connesso
                 checkAndMigrateLocalLookup();
-                renderCurrentSong();
+                if (activeConcert) {
+                    renderCurrentSong();
+                }
             }
 
             if (count === 0) {
@@ -1027,6 +1084,16 @@
                 if (lastMidiOutputsHash !== "empty") {
                     lastMidiOutputsHash = "empty";
                     logToTerminal("Nessun dispositivo MIDI output rilevato.", "warning");
+                }
+                
+                // Sblocca il pulsante di connessione per consentire la riconnessione manuale
+                const connBtn = document.getElementById('btn-connetti-midi');
+                if (connBtn) {
+                    connBtn.innerText = "RICONNETTI MIDI";
+                    connBtn.style.background = "var(--accent)";
+                    connBtn.style.color = "#000";
+                    connBtn.style.cursor = "pointer";
+                    connBtn.disabled = false;
                 }
             }
         }
