@@ -188,6 +188,10 @@
                 </div>
                 
                 <div id="patches-grid"></div>
+                
+                <div class="action-bar-wrapper" style="display: flex; justify-content: flex-start; padding: 5px 0 10px 0;">
+                    <div id="trash-add-btn" style="display: none; width: 60px; height: 60px; border-radius: 50%; font-size: 28px; justify-content: center; align-items: center; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 10px rgba(0,0,0,0.5); border: 2px solid #555; user-select: none;"></div>
+                </div>
 
                 <div class="live-nav">
                     <div id="btn-prev-song" class="nav-btn" onclick="changeSong(-1)">◄ Brano Prec</div>
@@ -212,7 +216,7 @@
         // ==========================================
         // STATO DELL'APPLICAZIONE
         // ==========================================
-        const APP_VERSION = "2026.07.14-2218";
+        const APP_VERSION = "2026.07.14-2231";
         let database = null;
         let activeConcert = null;
         let currentSongIndex = 0;
@@ -236,6 +240,13 @@
                 if (!settingsRes.ok) throw new Error("File settings.json non trovato");
                 const settingsData = await settingsRes.json();
                 patchLookup = settingsData.patches || {};
+                
+                // Unisci con la lookup personalizzata salvata in localStorage
+                const localLookup = localStorage.getItem('midiLive_patchLookup');
+                if (localLookup) {
+                    const parsedLocal = JSON.parse(localLookup);
+                    Object.assign(patchLookup, parsedLocal);
+                }
                 
                 // 2. Carica la scaletta dei concerti da localStorage o da server
                 const localDb = localStorage.getItem('midiLive_database');
@@ -385,6 +396,29 @@
                     btnNext.style.pointerEvents = 'none';
                 }
             }
+            
+            // Aggiorna pulsante azione
+            aggiornaPulsanteAzione();
+            
+            // Associa drag & drop desktop per il cestino
+            const actionBtn = document.getElementById('trash-add-btn');
+            if (actionBtn) {
+                actionBtn.ondragover = (e) => {
+                    e.preventDefault();
+                    actionBtn.style.transform = 'scale(1.15)';
+                };
+                actionBtn.ondragleave = () => {
+                    actionBtn.style.transform = '';
+                };
+                actionBtn.ondrop = (e) => {
+                    e.preventDefault();
+                    actionBtn.style.transform = '';
+                    const fromIndex = parseInt(e.dataTransfer.getData('text/plain'));
+                    if (!isNaN(fromIndex)) {
+                        eliminaPatch(fromIndex);
+                    }
+                };
+            }
         }
 
         function changeSong(direction) {
@@ -413,6 +447,7 @@
             if (activePad) {
                 activePad.classList.add('active');
             }
+            aggiornaPulsanteAzione();
         }
 
         function sincronizzaMidiInputConGUI(presetNum) {
@@ -428,6 +463,7 @@
                 const pads = document.querySelectorAll('.pad');
                 pads.forEach(pad => pad.classList.remove('active'));
             }
+            aggiornaPulsanteAzione();
         }
 
         // ==========================================
@@ -464,15 +500,22 @@
             const touch = e.touches[0];
             const target = document.elementFromPoint(touch.clientX, touch.clientY);
             
-            // Ripristina l'hover di tutti i pad
+            // Ripristina l'hover di tutti i pad e del cestino
             const pads = document.querySelectorAll('.pad');
             pads.forEach(pad => pad.style.transform = '');
+            const actionBtn = document.getElementById('trash-add-btn');
+            if (actionBtn) actionBtn.style.transform = '';
 
             if (target) {
                 const pad = target.closest('.pad');
+                const btnAction = target.closest('#trash-add-btn');
+                
                 if (pad && pad !== e.currentTarget) {
                     pad.style.transform = 'scale(1.05)';
                     lastTouchTarget = pad;
+                } else if (btnAction) {
+                    btnAction.style.transform = 'scale(1.15)';
+                    lastTouchTarget = btnAction;
                 } else {
                     lastTouchTarget = null;
                 }
@@ -484,15 +527,122 @@
             
             const pads = document.querySelectorAll('.pad');
             pads.forEach(pad => pad.style.transform = '');
+            const actionBtn = document.getElementById('trash-add-btn');
+            if (actionBtn) actionBtn.style.transform = '';
 
             if (lastTouchTarget && draggedPatchIndex !== null) {
-                const toIndex = parseInt(lastTouchTarget.dataset.index);
-                if (!isNaN(toIndex) && toIndex !== draggedPatchIndex) {
-                    spostaPatch(draggedPatchIndex, toIndex);
+                if (lastTouchTarget.id === 'trash-add-btn') {
+                    eliminaPatch(draggedPatchIndex);
+                } else {
+                    const toIndex = parseInt(lastTouchTarget.dataset.index);
+                    if (!isNaN(toIndex) && toIndex !== draggedPatchIndex) {
+                        spostaPatch(draggedPatchIndex, toIndex);
+                    }
                 }
             }
             draggedPatchIndex = null;
             lastTouchTarget = null;
+        }
+
+        function aggiornaPulsanteAzione() {
+            const actionBtn = document.getElementById('trash-add-btn');
+            if (!actionBtn) return;
+            
+            if (!activeConcert || !activeConcert.songs[currentSongIndex] || activePresetNum === null) {
+                actionBtn.style.display = 'none';
+                return;
+            }
+            
+            const song = activeConcert.songs[currentSongIndex];
+            const isPatchInSong = song.patches && song.patches.some(p => p.presetNum === activePresetNum);
+            
+            actionBtn.style.display = 'flex';
+            actionBtn.style.transform = ''; // Resetta eventuale zoom
+            
+            if (isPatchInSong) {
+                // Stato: Cestino
+                actionBtn.innerHTML = '🗑️';
+                actionBtn.style.background = '#ae2012';
+                actionBtn.style.borderColor = '#d90429';
+                actionBtn.style.color = '#fff';
+                actionBtn.title = "Trascina qui una patch per eliminarla";
+                actionBtn.onclick = null;
+            } else {
+                // Stato: Aggiungi
+                actionBtn.innerHTML = '➕';
+                actionBtn.style.background = '#2a9d8f';
+                actionBtn.style.borderColor = '#264653';
+                actionBtn.style.color = '#fff';
+                actionBtn.title = "Aggiungi questa patch alla canzone";
+                actionBtn.onclick = () => aggiungiPatchCorrente();
+            }
+        }
+
+        function aggiungiPatchCorrente() {
+            if (activePresetNum === null || !activeConcert || !activeConcert.songs[currentSongIndex]) return;
+            const song = activeConcert.songs[currentSongIndex];
+            if (!song.patches) song.patches = [];
+            
+            let nomePatch = patchLookup[activePresetNum];
+            if (!nomePatch) {
+                nomePatch = prompt(`Nuovo preset rilevato (${activePresetNum}). Inserisci il nome per questa patch:`);
+                if (!nomePatch || nomePatch.trim() === "") {
+                    logToTerminal("Aggiunta annullata: il nome della patch non può essere vuoto.", "warning");
+                    return;
+                }
+                nomePatch = nomePatch.trim();
+                
+                // Salva nella lookup locale
+                patchLookup[activePresetNum] = nomePatch;
+                
+                // Salva le patchLookup in localStorage
+                try {
+                    localStorage.setItem('midiLive_patchLookup', JSON.stringify(patchLookup));
+                    logToTerminal(`Impostazioni salvate: Registrata patch ${activePresetNum} come "${nomePatch}".`, "success");
+                } catch(err) {
+                    console.error("Errore salvataggio patchLookup:", err);
+                }
+            }
+            
+            // Aggiungi la patch alla canzone
+            song.patches.push({
+                presetNum: activePresetNum
+            });
+            
+            // Salva il database in localStorage
+            try {
+                localStorage.setItem('midiLive_database', JSON.stringify(database));
+                logToTerminal(`Patch "${nomePatch}" (PC ${activePresetNum}) aggiunta alla canzone "${song.title}".`, "success");
+            } catch(err) {
+                console.error("Errore salvataggio database:", err);
+            }
+            
+            // Ridisegna e aggiorna il pulsante azione
+            renderCurrentSong();
+        }
+
+        function eliminaPatch(index) {
+            if (!activeConcert || !activeConcert.songs[currentSongIndex]) return;
+            const song = activeConcert.songs[currentSongIndex];
+            if (!song.patches || index < 0 || index >= song.patches.length) return;
+            
+            const [deletedPatch] = song.patches.splice(index, 1);
+            
+            // Se la patch eliminata era quella attiva, deselezionala
+            if (activePresetNum === deletedPatch.presetNum) {
+                activePresetNum = null;
+            }
+            
+            // Salva in localStorage
+            try {
+                localStorage.setItem('midiLive_database', JSON.stringify(database));
+                logToTerminal(`Patch PC ${deletedPatch.presetNum} eliminata dal brano "${song.title}".`, "info");
+            } catch (err) {
+                console.error("Errore salvataggio localStorage:", err);
+            }
+            
+            // Ridisegna
+            renderCurrentSong();
         }
 
         // ==========================================
