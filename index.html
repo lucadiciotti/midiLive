@@ -229,7 +229,17 @@
         // ==========================================
         // STATO DELL'APPLICAZIONE
         // ==========================================
-        const APP_VERSION = "2026.07.14-2315";
+        const APP_VERSION = "2026.07.14-2318";
+        
+        // Logger globale per catturare e mostrare a schermo eventuali errori JS
+        window.onerror = function(message, source, lineno, colno, error) {
+            logToTerminal(`ERRORE JS: ${message} (linea ${lineno})`, "error");
+            return false;
+        };
+        window.onunhandledrejection = function(event) {
+            logToTerminal(`PROMISE KO: ${event.reason}`, "error");
+        };
+
         let database = null;
         let activeConcert = null;
         let currentSongIndex = 0;
@@ -810,7 +820,7 @@
                 let localLookup = JSON.parse(rawLocalLookup);
                 
                 // Se è un oggetto piatto (non ha il nodo "keyboards")
-                if (localLookup && !localLookup.keyboards) {
+                if (localLookup && typeof localLookup === 'object' && !localLookup.keyboards) {
                     const keys = Object.keys(localLookup);
                     if (keys.length === 0) return;
                     
@@ -1052,6 +1062,8 @@
             if (!globalMidiAccess) return;
             const selectDiv = document.getElementById('midi-out-select');
             if (!selectDiv) return;
+            
+            const prevValue = selectDiv.value;
             selectDiv.innerHTML = ''; 
             let count = 0;
             let outputNames = [];
@@ -1060,6 +1072,9 @@
                 const option = document.createElement('option');
                 option.value = output.id;
                 option.text = output.name;
+                if (output.id === prevValue) {
+                    option.selected = true;
+                }
                 selectDiv.appendChild(option);
                 count++;
                 outputNames.push(`${output.name} (${output.state})`);
