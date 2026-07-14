@@ -8,15 +8,12 @@
           "title": "Il Mare d'Inverno",
           "patches": [
             {
-              "name": "Pianoforte Acustico con Pad",
               "presetNum": 3
             },
             {
-              "name": "Synth Pad Lento",
               "presetNum": 18
             },
             {
-              "name": "Orchestra d'Archi",
               "presetNum": 16
             }
           ]
@@ -25,15 +22,12 @@
           "title": "L'Amore Si Odia",
           "patches": [
             {
-              "name": "Jazz Vibes",
               "presetNum": 9
             },
             {
-              "name": "Wuriltzer",
               "presetNum": 80
             },
             {
-              "name": "Orchestra d'Archi",
               "presetNum": 16
             }
           ]
@@ -42,15 +36,12 @@
           "title": "Amore di Plastica",
           "patches": [
             {
-              "name": "Pianoforte Acustico con Pad",
               "presetNum": 3
             },
             {
-              "name": "Organo Drawbar",
               "presetNum": 85
             },
             {
-              "name": "Piano",
               "presetNum": 86
             }
           ]
@@ -59,15 +50,12 @@
           "title": "Di Sole e d'Azzurro",
           "patches": [
             {
-              "name": "Pianoforte Acustico",
               "presetNum": 1
             },
             {
-              "name": "Warm Pad",
               "presetNum": 25
             },
             {
-              "name": "Orchestra d'Archi",
               "presetNum": 16
             }
           ]
@@ -76,15 +64,12 @@
           "title": "Bruci la città",
           "patches": [
             {
-              "name": "Synth Pad Lento",
               "presetNum": 28
             },
             {
-              "name": "Organo Drawbar",
               "presetNum": 85
             },
             {
-              "name": "Pianoforte",
               "presetNum": 1
             }
           ]
@@ -93,15 +78,12 @@
           "title": "Gli Ostacoli del Cuore",
           "patches": [
             {
-              "name": "Jazz Vibes",
               "presetNum": 9
             },
             {
-              "name": "Organo Hammond",
               "presetNum": 85
             },
             {
-              "name": "Riff di Synth",
               "presetNum": 35
             }
           ]
@@ -110,15 +92,12 @@
           "title": "Il Mondo Prima di Te",
           "patches": [
             {
-              "name": "Pianoforte Acustico con Pad",
               "presetNum": 3
             },
             {
-              "name": "Synth Pad Brillante",
               "presetNum": 19
             },
             {
-              "name": "Sub Bass Synth",
               "presetNum": 45
             }
           ]
@@ -127,15 +106,12 @@
           "title": "Meravigliosa Creatura",
           "patches": [
             {
-              "name": "Pianoforte Rock",
               "presetNum": 1
             },
             {
-              "name": "Archi Expressive",
               "presetNum": 17
             },
             {
-              "name": "Organo Hammond",
               "presetNum": 11
             }
           ]
@@ -144,15 +120,12 @@
           "title": "Primavera",
           "patches": [
             {
-              "name": "Pianoforte Acustico con Pad",
               "presetNum": 3
             },
             {
-              "name": "Synth Brass/Strings",
               "presetNum": 21
             },
             {
-              "name": "Pianoforte Acustico con Pad",
               "presetNum": 3
             }
           ]
@@ -161,15 +134,12 @@
           "title": "Oggi Sono Io",
           "patches": [
             {
-              "name": "Pianoforte Acustico",
               "presetNum": 1
             },
             {
-              "name": "Strings Pad",
               "presetNum": 22
             },
             {
-              "name": "Organo Blues",
               "presetNum": 13
             }
           ]
@@ -178,15 +148,12 @@
           "title": "Acqua e Sale",
           "patches": [
             {
-              "name": "Drawbars",
               "presetNum": 85
             },
             {
-              "name": "Soloist",
               "presetNum": 86
             },
             {
-              "name": "Acoustic Piano",
               "presetNum": 1
             }
           ]
@@ -195,15 +162,12 @@
           "title": "Senza Pietà",
           "patches": [
             {
-              "name": "Electric Piano",
               "presetNum": 86
             },
             {
-              "name": "Supersolo",
               "presetNum": 22
             },
             {
-              "name": "Stelly",
               "presetNum": 36
             }
           ]
@@ -218,11 +182,9 @@
           "title": "Your Song",
           "patches": [
             {
-              "name": "Gran Piano",
               "presetNum": 0
             },
             {
-              "name": "Piano e Archi",
               "presetNum": 15
             }
           ]

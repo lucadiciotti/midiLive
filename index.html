@@ -211,29 +211,37 @@
         // ==========================================
         // STATO DELL'APPLICAZIONE
         // ==========================================
-        const APP_VERSION = "2026.07.14-2152";
+        const APP_VERSION = "2026.07.14-2202";
         let database = null;
         let activeConcert = null;
         let currentSongIndex = 0;
         let globalMidiAccess = null;
         let activePresetNum = null;
+        let patchLookup = {};
 
         // ==========================================
         // GESTIONE DATI (JSON)
         // ==========================================
         async function loadDatabase() {
             try {
-                updateStatus("Caricamento scalette...", "#ee9b00");
-                // Attenzione: su file:/// locale la fetch fallisce per CORS. Su GitHub Pages funzionerà.
-                const response = await fetch('setlists.json?_t=' + Date.now()); 
-                if (!response.ok) throw new Error("File setlists.json non trovato");
+                updateStatus("Caricamento dati...", "#ee9b00");
+                const [dbRes, settingsRes] = await Promise.all([
+                    fetch('setlists.json?_t=' + Date.now()),
+                    fetch('settings.json?_t=' + Date.now())
+                ]);
                 
-                database = await response.json();
+                if (!dbRes.ok) throw new Error("File setlists.json non trovato");
+                if (!settingsRes.ok) throw new Error("File settings.json non trovato");
+                
+                database = await dbRes.json();
+                const settingsData = await settingsRes.json();
+                patchLookup = settingsData.patches || {};
+                
                 showConcerts();
                 updateStatus("Dati caricati", "#a7c957");
             } catch (error) {
-                updateStatus("Errore JSON!", "#ae2012");
-                alert("Impossibile caricare setlists.json. Assicurati di aver pushato il file su GitHub e di usare la versione HTTPS.\n\n" + error.message);
+                updateStatus("Errore caricamento!", "#ae2012");
+                alert("Impossibile caricare i dati. Assicurati di aver pushato settings.json e setlists.json su GitHub.\n\n" + error.message);
             }
         }
 
@@ -281,7 +289,8 @@
                     const btn = document.createElement('div');
                     btn.className = 'pad';
                     btn.id = `patch-pad-${patch.presetNum}`;
-                    btn.innerHTML = `${patch.name} <span class="preset-number">PC: ${patch.presetNum}</span>`;
+                    const patchName = patchLookup[patch.presetNum] || `Preset #${patch.presetNum}`;
+                    btn.innerHTML = `${patchName} <span class="preset-number">PC: ${patch.presetNum}</span>`;
                     btn.onclick = () => {
                         sendPC(patch.presetNum);
                         selezionaPadGUI(patch.presetNum);
@@ -361,7 +370,8 @@
             const patch = song.patches.find(p => p.presetNum === presetNum);
             if (patch) {
                 selezionaPadGUI(presetNum);
-                logToTerminal(`Sincronizzazione GUI: Rilevata selezione di "${patch.name}" (PC ${presetNum}) dalla tastiera.`, "info");
+                const patchName = patchLookup[presetNum] || `Patch #${presetNum}`;
+                logToTerminal(`Sincronizzazione GUI: Rilevata selezione di "${patchName}" (PC ${presetNum}) dalla tastiera.`, "info");
             } else {
                 activePresetNum = null;
                 const pads = document.querySelectorAll('.pad');
@@ -565,14 +575,7 @@
             const portId = document.getElementById('midi-out-select').value;
             const outputPort = globalMidiAccess.outputs.get(portId);
             
-            let patchName = `Preset #${presetNumber}`;
-            if (activeConcert && activeConcert.songs[currentSongIndex]) {
-                const song = activeConcert.songs[currentSongIndex];
-                const patch = song.patches.find(p => p.presetNum === presetNumber);
-                if (patch) {
-                    patchName = patch.name;
-                }
-            }
+            let patchName = patchLookup[presetNumber] || `Preset #${presetNumber}`;
             
             if (outputPort) {
                 const channelOffset = parseInt(document.getElementById('midi-channel').value);
