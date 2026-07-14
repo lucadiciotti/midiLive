@@ -1,26 +1,30 @@
 {
-  "patches": {
-    "0": "Gran Piano",
-    "1": "Pianoforte Acustico",
-    "3": "Pianoforte con Pad",
-    "9": "Jazz Vibes",
-    "11": "Organo Hammond",
-    "13": "Organo Blues",
-    "15": "Piano e Archi",
-    "16": "Orchestra d'Archi",
-    "17": "Archi Expressive",
-    "18": "Synth Pad Lento",
-    "19": "Synth Pad Brillante",
-    "21": "Synth Brass/Strings",
-    "22": "Supersolo",
-    "25": "Warm Pad",
-    "26": "Pad Atmosferico",
-    "28": "Synth Pad Lento",
-    "35": "Riff di Synth",
-    "36": "Stelly",
-    "45": "Sub Bass Synth",
-    "80": "Wurlitzer",
-    "85": "Organo Drawbar",
-    "86": "Soloist"
+  "keyboards": {
+    "Numa Compact 2": {
+      "patches": {
+        "0": "Gran Piano",
+        "1": "Pianoforte Acustico",
+        "3": "Pianoforte con Pad",
+        "9": "Jazz Vibes",
+        "11": "Organo Hammond",
+        "13": "Organo Blues",
+        "15": "Piano e Archi",
+        "16": "Orchestra d'Archi",
+        "17": "Archi Expressive",
+        "18": "Synth Pad Lento",
+        "19": "Synth Pad Brillante",
+        "21": "Synth Brass/Strings",
+        "22": "Supersolo",
+        "25": "Warm Pad",
+        "26": "Pad Atmosferico",
+        "28": "Synth Pad Lento",
+        "35": "Riff di Synth",
+        "36": "Stelly",
+        "45": "Sub Bass Synth",
+        "80": "Wurlitzer",
+        "85": "Organo Drawbar",
+        "86": "Soloist"
+      }
+    }
   }
 }

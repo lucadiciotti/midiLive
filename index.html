@@ -159,7 +159,7 @@
 
     <header>
         <div class="midi-controls">
-            <select id="midi-out-select"><option>Cerco tastiera...</option></select>
+            <select id="midi-out-select" onchange="onKeyboardSelectChange()"><option>Cerco tastiera...</option></select>
             <button id="btn-connetti-midi" onclick="inizializzaMidi()" style="background: var(--accent); color: #000; border: none; padding: 5px 12px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 12px; transition: all 0.2s;">CONNETTI MIDI</button>
             <select id="midi-channel">
                 <script>for(let i=0; i<16; i++) document.write(`<option value="${i}">CH ${i+1}</option>`);</script>
@@ -216,7 +216,7 @@
         // ==========================================
         // STATO DELL'APPLICAZIONE
         // ==========================================
-        const APP_VERSION = "2026.07.14-2234";
+        const APP_VERSION = "2026.07.14-2254";
         let database = null;
         let activeConcert = null;
         let currentSongIndex = 0;
@@ -239,13 +239,31 @@
                 const settingsRes = await fetch('settings.json?_t=' + Date.now());
                 if (!settingsRes.ok) throw new Error("File settings.json non trovato");
                 const settingsData = await settingsRes.json();
-                patchLookup = settingsData.patches || {};
+                
+                // Salva l'intera struttura (che contiene "keyboards")
+                patchLookup = settingsData || { keyboards: {} };
+                if (!patchLookup.keyboards) patchLookup.keyboards = {};
                 
                 // Unisci con la lookup personalizzata salvata in localStorage
                 const localLookup = localStorage.getItem('midiLive_patchLookup');
                 if (localLookup) {
                     const parsedLocal = JSON.parse(localLookup);
-                    Object.assign(patchLookup, parsedLocal);
+                    if (parsedLocal.keyboards) {
+                        // Nuovo formato strutturato
+                        for (const kb in parsedLocal.keyboards) {
+                            if (!patchLookup.keyboards[kb]) {
+                                patchLookup.keyboards[kb] = { patches: {} };
+                            }
+                            Object.assign(patchLookup.keyboards[kb].patches, parsedLocal.keyboards[kb].patches);
+                        }
+                    } else {
+                        // Vecchio formato piatto: lo associamo a una tastiera virtuale "Tastiera Temporanea"
+                        // per garantire la retrocompatibilità fino alla prima migrazione differita.
+                        if (!patchLookup.keyboards["Tastiera Temporanea"]) {
+                            patchLookup.keyboards["Tastiera Temporanea"] = { patches: {} };
+                        }
+                        Object.assign(patchLookup.keyboards["Tastiera Temporanea"].patches, parsedLocal);
+                    }
                 }
                 
                 // 2. Carica la scaletta dei concerti da localStorage o da server
@@ -326,7 +344,7 @@
                     btn.id = `patch-pad-${patch.presetNum}`;
                     btn.dataset.index = index; // Memorizza l'indice per il riposizionamento
                     
-                    const patchName = patchLookup[patch.presetNum] || `Preset #${patch.presetNum}`;
+                    const patchName = getPatchName(patch.presetNum);
                     btn.innerHTML = `${patchName} <span class="preset-number">PC: ${patch.presetNum}</span>`;
                     
                     // Selezione patch
@@ -465,7 +483,7 @@
             const patch = song.patches.find(p => p.presetNum === presetNum);
             if (patch) {
                 selezionaPadGUI(presetNum);
-                const patchName = patchLookup[presetNum] || `Patch #${presetNum}`;
+                const patchName = getPatchName(presetNum);
                 logToTerminal(`Sincronizzazione GUI: Rilevata selezione di "${patchName}" (PC ${presetNum}) dalla tastiera.`, "info");
             } else {
                 activePresetNum = null;
@@ -592,22 +610,28 @@
             const song = activeConcert.songs[currentSongIndex];
             if (!song.patches) song.patches = [];
             
-            let nomePatch = patchLookup[activePresetNum];
+            const keyboardName = getActiveKeyboardName() || "Tastiera Generica";
+            
+            // Inizializza la struttura a dizionari se assente
+            if (!patchLookup.keyboards) patchLookup.keyboards = {};
+            if (!patchLookup.keyboards[keyboardName]) patchLookup.keyboards[keyboardName] = { patches: {} };
+            
+            let nomePatch = patchLookup.keyboards[keyboardName].patches[activePresetNum];
             if (!nomePatch) {
-                nomePatch = prompt(`Nuovo preset rilevato (${activePresetNum}). Inserisci il nome per questa patch:`);
+                nomePatch = prompt(`Nuovo preset rilevato (${activePresetNum}) per ${keyboardName}. Inserisci il nome per questa patch:`);
                 if (!nomePatch || nomePatch.trim() === "") {
                     logToTerminal("Aggiunta annullata: il nome della patch non può essere vuoto.", "warning");
                     return;
                 }
                 nomePatch = nomePatch.trim();
                 
-                // Salva nella lookup locale
-                patchLookup[activePresetNum] = nomePatch;
+                // Salva nella lookup in memoria
+                patchLookup.keyboards[keyboardName].patches[activePresetNum] = nomePatch;
                 
                 // Salva le patchLookup in localStorage
                 try {
                     localStorage.setItem('midiLive_patchLookup', JSON.stringify(patchLookup));
-                    logToTerminal(`Impostazioni salvate: Registrata patch ${activePresetNum} come "${nomePatch}".`, "success");
+                    logToTerminal(`Impostazioni salvate: Registrata patch ${activePresetNum} per "${keyboardName}" come "${nomePatch}".`, "success");
                 } catch(err) {
                     console.error("Errore salvataggio patchLookup:", err);
                 }
@@ -654,7 +678,92 @@
             renderCurrentSong();
         }
 
-        // ==========================================
+        function getActiveKeyboardName() {
+            const selectDiv = document.getElementById('midi-out-select');
+            if (selectDiv && selectDiv.value && selectDiv.value !== "Nessuna tastiera" && selectDiv.value !== "Cerco tastiera...") {
+                const option = selectDiv.options[selectDiv.selectedIndex];
+                if (option && option.text !== "Nessuna tastiera" && option.text !== "Cerco tastiera...") {
+                    return option.text;
+                }
+            }
+            return null;
+        }
+
+        function getPatchName(presetNumber) {
+            const keyboardName = getActiveKeyboardName();
+            if (keyboardName) {
+                if (patchLookup && patchLookup.keyboards && patchLookup.keyboards[keyboardName]) {
+                    const name = patchLookup.keyboards[keyboardName].patches[presetNumber];
+                    if (name) return name;
+                }
+            }
+            
+            // Fallback: se la tastiera attiva non ha questa patch o non è collegata,
+            // cerchiamo tra tutti i modelli configurati
+            if (patchLookup && patchLookup.keyboards) {
+                for (const kb in patchLookup.keyboards) {
+                    const name = patchLookup.keyboards[kb].patches[presetNumber];
+                    if (name) return name;
+                }
+            }
+            
+            return `Preset #${presetNumber}`;
+        }
+
+        function checkAndMigrateLocalLookup() {
+            const keyboardName = getActiveKeyboardName();
+            if (!keyboardName) return; // Nessuna tastiera attiva, migrazione differita
+            
+            const rawLocalLookup = localStorage.getItem('midiLive_patchLookup');
+            if (!rawLocalLookup) return;
+            
+            try {
+                let localLookup = JSON.parse(rawLocalLookup);
+                
+                // Se è un oggetto piatto (non ha il nodo "keyboards")
+                if (localLookup && !localLookup.keyboards) {
+                    const keys = Object.keys(localLookup);
+                    if (keys.length === 0) return;
+                    
+                    const isFlat = keys.every(key => !isNaN(key) || key === "Tastiera Temporanea");
+                    if (isFlat) {
+                        logToTerminal(`Migrazione database: Rilevato formato legacy. Trasferimento patch personalizzate a "${keyboardName}"...`, "system");
+                        
+                        // Costruisci il nuovo formato nidificato
+                        const newLookup = {
+                            keyboards: {
+                                [keyboardName]: {
+                                    patches: localLookup
+                                }
+                            }
+                        };
+                        
+                        localStorage.setItem('midiLive_patchLookup', JSON.stringify(newLookup));
+                        
+                        // Pulisci e unisci in memoria
+                        if (!patchLookup.keyboards) patchLookup.keyboards = {};
+                        if (!patchLookup.keyboards[keyboardName]) patchLookup.keyboards[keyboardName] = { patches: {} };
+                        Object.assign(patchLookup.keyboards[keyboardName].patches, localLookup);
+                        
+                        // Rimuovi la tastiera fittizia temporanea se presente
+                        if (patchLookup.keyboards["Tastiera Temporanea"]) {
+                            delete patchLookup.keyboards["Tastiera Temporanea"];
+                        }
+                        
+                        logToTerminal("Migrazione completata con successo!", "success");
+                    }
+                }
+            } catch (err) {
+                console.error("Errore durante la migrazione locale di patchLookup:", err);
+            }
+        }
+
+        function onKeyboardSelectChange() {
+            checkAndMigrateLocalLookup();
+            renderCurrentSong();
+        }
+ 
+         // ==========================================
         // GESTIONE MIDI (Motore collaudato con Input Monitor)
         // ==========================================
         function inizializzaMidi() {
@@ -831,6 +940,10 @@
                 outputNames.forEach(name => {
                     logToTerminal(`Dispositivo MIDI rilevato: ${name}`, "info");
                 });
+                
+                // Esegui la migrazione dei dati locali per il dispositivo connesso
+                checkAndMigrateLocalLookup();
+                renderCurrentSong();
             }
 
             if (count === 0) {
@@ -850,7 +963,7 @@
             const portId = document.getElementById('midi-out-select').value;
             const outputPort = globalMidiAccess.outputs.get(portId);
             
-            let patchName = patchLookup[presetNumber] || `Preset #${presetNumber}`;
+            let patchName = getPatchName(presetNumber);
             
             if (outputPort) {
                 const channelOffset = parseInt(document.getElementById('midi-channel').value);
