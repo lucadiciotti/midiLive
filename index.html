@@ -166,7 +166,10 @@
         </div>
         <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px;">
             <div id="status-indicator">In attesa...</div>
-            <div id="app-version" style="font-size: 18px; color: #666; font-family: monospace; letter-spacing: 0.5px;">v0.0.0</div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <div id="app-version" style="font-size: 18px; color: #666; font-family: monospace; letter-spacing: 0.5px;">v0.0.0</div>
+                <button onclick="aggiornaApplicazione()" style="background: none; border: none; color: var(--accent); cursor: pointer; font-size: 18px; padding: 2px; display: flex; align-items: center; justify-content: center;" title="Aggiorna applicazione">🔄</button>
+            </div>
         </div>
     </header>
 
@@ -208,7 +211,7 @@
         // ==========================================
         // STATO DELL'APPLICAZIONE
         // ==========================================
-        const APP_VERSION = "2026.07.14-2144";
+        const APP_VERSION = "2026.07.14-2146";
         let database = null;
         let activeConcert = null;
         let currentSongIndex = 0;
@@ -579,6 +582,11 @@
             } else {
                 logToTerminal(`Errore: Nessun dispositivo selezionato o tastiera disconnessa (PC ${presetNumber})`, "error");
             }
+        }
+
+        function aggiornaApplicazione() {
+            logToTerminal("Forzatura aggiornamento applicazione in corso...", "system");
+            window.location.href = window.location.origin + window.location.pathname + '?_t=' + Date.now();
         }
 
         function updateStatus(text, color) {
