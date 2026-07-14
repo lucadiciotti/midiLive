@@ -219,8 +219,8 @@
             <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 20px; line-height: 1.4;" id="modal-subtitle">Inserisci il nome per il preset</p>
             <input type="text" id="modal-input-name" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #444; background: #222; color: #fff; font-size: 16px; margin-bottom: 25px; box-sizing: border-box; text-align: center;" placeholder="Nome del preset (es. Piano e Pad)">
             <div style="display: flex; justify-content: space-between; gap: 15px;">
-                <button onclick="chiudiModalPatch(false)" style="flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #555; background: transparent; color: #fff; cursor: pointer; font-size: 14px; transition: background 0.2s;">Annulla</button>
-                <button onclick="chiudiModalPatch(true)" style="flex: 1; padding: 12px; border-radius: 8px; border: none; background: var(--accent); color: #000; font-weight: bold; cursor: pointer; font-size: 14px; transition: background 0.2s;">Conferma</button>
+                <button type="button" onclick="chiudiModalPatch(false)" style="flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #555; background: transparent; color: #fff; cursor: pointer; font-size: 14px; transition: background 0.2s;">Annulla</button>
+                <button type="button" onclick="chiudiModalPatch(true)" style="flex: 1; padding: 12px; border-radius: 8px; border: none; background: var(--accent); color: #000; font-weight: bold; cursor: pointer; font-size: 14px; transition: background 0.2s;">Conferma</button>
             </div>
         </div>
     </div>
@@ -229,7 +229,7 @@
         // ==========================================
         // STATO DELL'APPLICAZIONE
         // ==========================================
-        const APP_VERSION = "2026.07.14-2318";
+        const APP_VERSION = "2026.07.14-2321";
         
         // Logger globale per catturare e mostrare a schermo eventuali errori JS
         window.onerror = function(message, source, lineno, colno, error) {
@@ -901,6 +901,10 @@
             if (window.modalResolve) {
                 window.modalResolve(confermato);
             }
+            // Riconnetti automaticamente il MIDI dopo la chiusura della tastiera virtuale del tablet
+            setTimeout(() => {
+                inizializzaMidi();
+            }, 300);
         }
  
          // ==========================================
@@ -1037,9 +1041,15 @@
             }
 
             midiAccess.onstatechange = (e) => {
-                aggiornaPorte();
-                collegaInputMidi();
-                logToTerminal(`Porta MIDI modificata: ${e.port.name} (${e.port.state})`, "info");
+                try {
+                    aggiornaPorte();
+                    collegaInputMidi();
+                    const portName = (e.port && e.port.name) ? e.port.name : "Dispositivo Sconosciuto";
+                    const portState = (e.port && e.port.state) ? e.port.state : "sconosciuto";
+                    logToTerminal(`Porta MIDI modificata: ${portName} (${portState})`, "info");
+                } catch (err) {
+                    console.error("Errore in onstatechange:", err);
+                }
             };
         }
 
