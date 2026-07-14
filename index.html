@@ -183,9 +183,9 @@
                 <div id="patches-grid"></div>
 
                 <div class="live-nav">
-                    <div class="nav-btn" onclick="changeSong(-1)">◄ Brano Prec</div>
+                    <div id="btn-prev-song" class="nav-btn" onclick="changeSong(-1)">◄ Brano Prec</div>
                     <div class="nav-btn primary" onclick="showConcerts()">Cambia Live</div>
-                    <div class="nav-btn" onclick="changeSong(1)">Brano Succ ►</div>
+                    <div id="btn-next-song" class="nav-btn" onclick="changeSong(1)">Brano Succ ►</div>
                 </div>
             </div>
         </div>
@@ -205,7 +205,7 @@
         // ==========================================
         // STATO DELL'APPLICAZIONE
         // ==========================================
-        const APP_VERSION = "2026.07.12-1740";
+        const APP_VERSION = "2026.07.14-2139";
         let database = null;
         let activeConcert = null;
         let currentSongIndex = 0;
@@ -287,6 +287,37 @@
                 });
             } else {
                 grid.innerHTML = '<div style="width:100%; text-align:center; color:#aaa;">Nessuna patch per questo brano.</div>';
+            }
+
+            // Calcola i brani precedente e successivo
+            const prevSong = activeConcert.songs[currentSongIndex - 1];
+            const nextSong = activeConcert.songs[currentSongIndex + 1];
+
+            const btnPrev = document.getElementById('btn-prev-song');
+            const btnNext = document.getElementById('btn-next-song');
+
+            if (btnPrev) {
+                if (prevSong) {
+                    btnPrev.innerHTML = `◄ ${prevSong.title}`;
+                    btnPrev.style.opacity = '1';
+                    btnPrev.style.pointerEvents = 'auto';
+                } else {
+                    btnPrev.innerHTML = `◄ (Inizio)`;
+                    btnPrev.style.opacity = '0.3';
+                    btnPrev.style.pointerEvents = 'none';
+                }
+            }
+
+            if (btnNext) {
+                if (nextSong) {
+                    btnNext.innerHTML = `${nextSong.title} ►`;
+                    btnNext.style.opacity = '1';
+                    btnNext.style.pointerEvents = 'auto';
+                } else {
+                    btnNext.innerHTML = `(Fine) ►`;
+                    btnNext.style.opacity = '0.3';
+                    btnNext.style.pointerEvents = 'none';
+                }
             }
         }
 
