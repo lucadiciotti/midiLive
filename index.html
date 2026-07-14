@@ -211,7 +211,7 @@
         // ==========================================
         // STATO DELL'APPLICAZIONE
         // ==========================================
-        const APP_VERSION = "2026.07.14-2146";
+        const APP_VERSION = "2026.07.14-2152";
         let database = null;
         let activeConcert = null;
         let currentSongIndex = 0;
@@ -331,7 +331,16 @@
             const newIndex = currentSongIndex + direction;
             if (newIndex >= 0 && newIndex < activeConcert.songs.length) {
                 currentSongIndex = newIndex;
-                activePresetNum = null;
+                
+                const newSong = activeConcert.songs[currentSongIndex];
+                if (newSong.patches && newSong.patches.length > 0) {
+                    const firstPatch = newSong.patches[0];
+                    activePresetNum = firstPatch.presetNum;
+                    sendPC(firstPatch.presetNum);
+                } else {
+                    activePresetNum = null;
+                }
+                
                 renderCurrentSong();
             }
         }
