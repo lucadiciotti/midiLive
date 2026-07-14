@@ -229,7 +229,7 @@
         // ==========================================
         // STATO DELL'APPLICAZIONE
         // ==========================================
-        const APP_VERSION = "2026.07.14-2321";
+        const APP_VERSION = "2026.07.14-2325";
         
         // Logger globale per catturare e mostrare a schermo eventuali errori JS
         window.onerror = function(message, source, lineno, colno, error) {
@@ -901,10 +901,6 @@
             if (window.modalResolve) {
                 window.modalResolve(confermato);
             }
-            // Riconnetti automaticamente il MIDI dopo la chiusura della tastiera virtuale del tablet
-            setTimeout(() => {
-                inizializzaMidi();
-            }, 300);
         }
  
          // ==========================================
