@@ -216,7 +216,7 @@
         // ==========================================
         // STATO DELL'APPLICAZIONE
         // ==========================================
-        const APP_VERSION = "2026.07.14-2309";
+        const APP_VERSION = "2026.07.14-2311";
         let database = null;
         let activeConcert = null;
         let currentSongIndex = 0;
@@ -505,9 +505,11 @@
                 const patchName = getPatchName(presetNum);
                 logToTerminal(`Sincronizzazione GUI: Rilevata selezione di "${patchName}" (PC ${presetNum}) dalla tastiera.`, "info");
             } else {
-                activePresetNum = null;
+                activePresetNum = presetNum;
                 const pads = document.querySelectorAll('.pad');
                 pads.forEach(pad => pad.classList.remove('active'));
+                const patchName = getPatchName(presetNum);
+                logToTerminal(`Rilevato preset esterno: "${patchName}" (PC ${presetNum}) dalla tastiera.`, "warning");
             }
             aggiornaPulsanteAzione();
         }
