@@ -229,7 +229,7 @@
         // ==========================================
         // STATO DELL'APPLICAZIONE
         // ==========================================
-        const APP_VERSION = "2026.07.14-2325";
+        const APP_VERSION = "2026.07.14-2330";
         
         // Logger globale per catturare e mostrare a schermo eventuali errori JS
         window.onerror = function(message, source, lineno, colno, error) {
@@ -637,10 +637,11 @@
             actionBtn.style.transform = ''; // Resetta eventuale zoom
             
             if (isPatchInSong) {
-                // Stato: Cestino (Cerchio Rosso)
+                // Stato: Cestino (Solo icona cestino, senza cerchio di sfondo)
                 actionBtn.innerHTML = '🗑️';
-                actionBtn.style.background = '#ae2012';
-                actionBtn.style.borderColor = '#d90429';
+                actionBtn.style.background = 'transparent';
+                actionBtn.style.border = 'none';
+                actionBtn.style.boxShadow = 'none';
                 actionBtn.style.color = '#fff';
                 actionBtn.title = "Trascina qui una patch per eliminarla";
                 actionBtn.onclick = null;
@@ -649,19 +650,18 @@
                 actionBtn.ontouchmove = null;
                 actionBtn.ontouchend = null;
                 
-                // Ripristina stile circolare
+                // Imposta dimensioni e ingrandisce l'icona
                 actionBtn.style.width = '60px';
                 actionBtn.style.height = '60px';
-                actionBtn.style.borderRadius = '50%';
-                actionBtn.style.fontSize = '28px';
+                actionBtn.style.borderRadius = '0';
+                actionBtn.style.fontSize = '42px'; // Cestino leggermente più grande
                 actionBtn.style.padding = '0';
-                actionBtn.style.borderStyle = 'solid';
             } else {
                 // Stato: Aggiungi (Pad Rettangolare Tratteggiato)
                 const patchName = getPatchName(activePresetNum);
                 actionBtn.innerHTML = `➕ ${patchName} <span class="preset-number" style="display:inline; margin-top:0; font-size:12px; margin-left:6px; opacity:0.8;">PC: ${activePresetNum}</span>`;
                 actionBtn.style.background = 'rgba(42, 157, 143, 0.25)';
-                actionBtn.style.borderColor = '#2a9d8f';
+                actionBtn.style.border = '2px dashed #2a9d8f';
                 actionBtn.style.color = '#fff';
                 actionBtn.title = "Trascina nella griglia o fai clic per aggiungere questa patch";
                 actionBtn.onclick = () => aggiungiPatchCorrente();
@@ -673,7 +673,6 @@
                 actionBtn.style.borderRadius = '12px';
                 actionBtn.style.fontSize = '16px';
                 actionBtn.style.padding = '12px 18px';
-                actionBtn.style.borderStyle = 'dashed';
                 
                 // Abilita il Drag & Drop (Desktop & Mobile)
                 actionBtn.setAttribute('draggable', 'true');
