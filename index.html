@@ -216,7 +216,7 @@
         // ==========================================
         // STATO DELL'APPLICAZIONE
         // ==========================================
-        const APP_VERSION = "2026.07.14-2254";
+        const APP_VERSION = "2026.07.14-2309";
         let database = null;
         let activeConcert = null;
         let currentSongIndex = 0;
@@ -337,6 +337,20 @@
             const grid = document.getElementById('patches-grid');
             grid.innerHTML = '';
             
+            // Consenti il drop sullo sfondo della griglia per aggiungere in coda
+            grid.ondragover = (e) => {
+                e.preventDefault();
+            };
+            grid.ondrop = (e) => {
+                e.preventDefault();
+                const dragData = e.dataTransfer.getData('text/plain');
+                if (dragData === 'new-patch') {
+                    if (e.target === grid || e.target.id === 'patches-grid') {
+                        aggiungiPatchInPosizione(-1);
+                    }
+                }
+            };
+            
             if(song.patches && song.patches.length > 0) {
                 song.patches.forEach((patch, index) => {
                     const btn = document.createElement('div');
@@ -367,9 +381,14 @@
                     };
                     btn.ondrop = (e) => {
                         e.preventDefault();
-                        const fromIndex = parseInt(e.dataTransfer.getData('text/plain'));
-                        if (!isNaN(fromIndex) && fromIndex !== index) {
-                            spostaPatch(fromIndex, index);
+                        const dragData = e.dataTransfer.getData('text/plain');
+                        if (dragData === 'new-patch') {
+                            aggiungiPatchInPosizione(index);
+                        } else {
+                            const fromIndex = parseInt(dragData);
+                            if (!isNaN(fromIndex) && fromIndex !== index) {
+                                spostaPatch(fromIndex, index);
+                            }
                         }
                     };
 
@@ -559,11 +578,17 @@
 
             if (lastTouchTarget && draggedPatchIndex !== null) {
                 if (lastTouchTarget.id === 'trash-add-btn') {
-                    eliminaPatch(draggedPatchIndex);
+                    if (draggedPatchIndex !== 'new-patch') {
+                        eliminaPatch(draggedPatchIndex);
+                    }
                 } else {
                     const toIndex = parseInt(lastTouchTarget.dataset.index);
-                    if (!isNaN(toIndex) && toIndex !== draggedPatchIndex) {
-                        spostaPatch(draggedPatchIndex, toIndex);
+                    if (!isNaN(toIndex)) {
+                        if (draggedPatchIndex === 'new-patch') {
+                            aggiungiPatchInPosizione(toIndex);
+                        } else if (toIndex !== draggedPatchIndex) {
+                            spostaPatch(draggedPatchIndex, toIndex);
+                        }
                     }
                 }
             }
@@ -587,25 +612,71 @@
             actionBtn.style.transform = ''; // Resetta eventuale zoom
             
             if (isPatchInSong) {
-                // Stato: Cestino
+                // Stato: Cestino (Cerchio Rosso)
                 actionBtn.innerHTML = '🗑️';
                 actionBtn.style.background = '#ae2012';
                 actionBtn.style.borderColor = '#d90429';
                 actionBtn.style.color = '#fff';
                 actionBtn.title = "Trascina qui una patch per eliminarla";
                 actionBtn.onclick = null;
+                actionBtn.setAttribute('draggable', 'false');
+                actionBtn.ontouchstart = null;
+                actionBtn.ontouchmove = null;
+                actionBtn.ontouchend = null;
+                
+                // Ripristina stile circolare
+                actionBtn.style.width = '60px';
+                actionBtn.style.height = '60px';
+                actionBtn.style.borderRadius = '50%';
+                actionBtn.style.fontSize = '28px';
+                actionBtn.style.padding = '0';
+                actionBtn.style.borderStyle = 'solid';
             } else {
-                // Stato: Aggiungi
-                actionBtn.innerHTML = '➕';
-                actionBtn.style.background = '#2a9d8f';
-                actionBtn.style.borderColor = '#264653';
+                // Stato: Aggiungi (Pad Rettangolare Tratteggiato)
+                const patchName = getPatchName(activePresetNum);
+                actionBtn.innerHTML = `➕ ${patchName} <span class="preset-number" style="display:inline; margin-top:0; font-size:12px; margin-left:6px; opacity:0.8;">PC: ${activePresetNum}</span>`;
+                actionBtn.style.background = 'rgba(42, 157, 143, 0.25)';
+                actionBtn.style.borderColor = '#2a9d8f';
                 actionBtn.style.color = '#fff';
-                actionBtn.title = "Aggiungi questa patch alla canzone";
+                actionBtn.title = "Trascina nella griglia o fai clic per aggiungere questa patch";
                 actionBtn.onclick = () => aggiungiPatchCorrente();
+                
+                // Stile rettangolare tipo Pad
+                actionBtn.style.width = 'auto';
+                actionBtn.style.height = 'auto';
+                actionBtn.style.minWidth = '160px';
+                actionBtn.style.borderRadius = '12px';
+                actionBtn.style.fontSize = '16px';
+                actionBtn.style.padding = '12px 18px';
+                actionBtn.style.borderStyle = 'dashed';
+                
+                // Abilita il Drag & Drop (Desktop & Mobile)
+                actionBtn.setAttribute('draggable', 'true');
+                actionBtn.ondragstart = (e) => {
+                    e.dataTransfer.setData('text/plain', 'new-patch');
+                    actionBtn.classList.add('dragging');
+                };
+                actionBtn.ondragend = () => {
+                    actionBtn.classList.remove('dragging');
+                };
+                
+                actionBtn.ontouchstart = (e) => {
+                    handleTouchStart(e, 'new-patch');
+                };
+                actionBtn.ontouchmove = (e) => {
+                    handleTouchMove(e);
+                };
+                actionBtn.ontouchend = (e) => {
+                    handleTouchEnd(e);
+                };
             }
         }
 
         function aggiungiPatchCorrente() {
+            aggiungiPatchInPosizione(-1);
+        }
+
+        function aggiungiPatchInPosizione(toIndex) {
             if (activePresetNum === null || !activeConcert || !activeConcert.songs[currentSongIndex]) return;
             const song = activeConcert.songs[currentSongIndex];
             if (!song.patches) song.patches = [];
@@ -637,15 +708,18 @@
                 }
             }
             
-            // Aggiungi la patch alla canzone
-            song.patches.push({
-                presetNum: activePresetNum
-            });
+            // Aggiungi la patch alla canzone alla posizione corretta
+            const newPatchObj = { presetNum: activePresetNum };
+            if (toIndex === -1 || toIndex >= song.patches.length) {
+                song.patches.push(newPatchObj);
+            } else {
+                song.patches.splice(toIndex, 0, newPatchObj);
+            }
             
             // Salva il database in localStorage
             try {
                 localStorage.setItem('midiLive_database', JSON.stringify(database));
-                logToTerminal(`Patch "${nomePatch}" (PC ${activePresetNum}) aggiunta alla canzone "${song.title}".`, "success");
+                logToTerminal(`Patch "${nomePatch}" (PC ${activePresetNum}) aggiunta alla canzone "${song.title}" in posizione ${toIndex === -1 ? song.patches.length : toIndex + 1}.`, "success");
             } catch(err) {
                 console.error("Errore salvataggio database:", err);
             }
