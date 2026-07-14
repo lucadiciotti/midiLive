@@ -50,6 +50,7 @@
         .pad { background: var(--primary); border: 2px solid var(--primary-dark); padding: 20px 10px; font-size: 20px; color: white; border-radius: 12px; text-align: center; cursor: pointer; user-select: none; box-shadow: 0 4px 6px rgba(0,0,0,0.3); transition: transform 0.1s, background-color 0.2s; }
         .pad:active { background: var(--accent); border-color: #f4a261; color: #000; transform: translateY(2px); }
         .pad.active { background: var(--accent); border-color: #f4a261; color: #000; box-shadow: 0 0 12px var(--accent); }
+        .pad.dragging { opacity: 0.4; border: 2px dashed var(--accent); background: #333; transform: scale(0.95); }
         .preset-number { font-size: 14px; opacity: 0.9; display: block; margin-top: 8px; font-family: monospace; }
 
         /* NAVIGAZIONE INFERIORE */
@@ -211,13 +212,17 @@
         // ==========================================
         // STATO DELL'APPLICAZIONE
         // ==========================================
-        const APP_VERSION = "2026.07.14-2204";
+        const APP_VERSION = "2026.07.14-2218";
         let database = null;
         let activeConcert = null;
         let currentSongIndex = 0;
         let globalMidiAccess = null;
         let activePresetNum = null;
         let patchLookup = {};
+        
+        // Stato per il drag and drop touch
+        let draggedPatchIndex = null;
+        let lastTouchTarget = null;
 
         // ==========================================
         // GESTIONE DATI (JSON)
@@ -225,17 +230,27 @@
         async function loadDatabase() {
             try {
                 updateStatus("Caricamento dati...", "#ee9b00");
-                const [dbRes, settingsRes] = await Promise.all([
-                    fetch('setlists.json?_t=' + Date.now()),
-                    fetch('settings.json?_t=' + Date.now())
-                ]);
                 
-                if (!dbRes.ok) throw new Error("File setlists.json non trovato");
+                // 1. Carica i nomi delle patch da settings.json
+                const settingsRes = await fetch('settings.json?_t=' + Date.now());
                 if (!settingsRes.ok) throw new Error("File settings.json non trovato");
-                
-                database = await dbRes.json();
                 const settingsData = await settingsRes.json();
                 patchLookup = settingsData.patches || {};
+                
+                // 2. Carica la scaletta dei concerti da localStorage o da server
+                const localDb = localStorage.getItem('midiLive_database');
+                if (localDb) {
+                    database = JSON.parse(localDb);
+                    logToTerminal("Database caricato dalla memoria locale.", "system");
+                } else {
+                    const dbRes = await fetch('setlists.json?_t=' + Date.now());
+                    if (!dbRes.ok) throw new Error("File setlists.json non trovato");
+                    database = await dbRes.json();
+                    
+                    // Inizializza localStorage
+                    localStorage.setItem('midiLive_database', JSON.stringify(database));
+                    logToTerminal("Database scaricato da GitHub e salvato in locale.", "system");
+                }
                 
                 showConcerts();
                 updateStatus("Dati caricati", "#a7c957");
@@ -285,16 +300,52 @@
             grid.innerHTML = '';
             
             if(song.patches && song.patches.length > 0) {
-                song.patches.forEach(patch => {
+                song.patches.forEach((patch, index) => {
                     const btn = document.createElement('div');
                     btn.className = 'pad';
                     btn.id = `patch-pad-${patch.presetNum}`;
+                    btn.dataset.index = index; // Memorizza l'indice per il riposizionamento
+                    
                     const patchName = patchLookup[patch.presetNum] || `Preset #${patch.presetNum}`;
                     btn.innerHTML = `${patchName} <span class="preset-number">PC: ${patch.presetNum}</span>`;
+                    
+                    // Selezione patch
                     btn.onclick = () => {
                         sendPC(patch.presetNum);
                         selezionaPadGUI(patch.presetNum);
                     };
+                    
+                    // Drag and Drop (Desktop / Mouse)
+                    btn.setAttribute('draggable', 'true');
+                    btn.ondragstart = (e) => {
+                        e.dataTransfer.setData('text/plain', index);
+                        btn.classList.add('dragging');
+                    };
+                    btn.ondragend = () => {
+                        btn.classList.remove('dragging');
+                    };
+                    btn.ondragover = (e) => {
+                        e.preventDefault();
+                    };
+                    btn.ondrop = (e) => {
+                        e.preventDefault();
+                        const fromIndex = parseInt(e.dataTransfer.getData('text/plain'));
+                        if (!isNaN(fromIndex) && fromIndex !== index) {
+                            spostaPatch(fromIndex, index);
+                        }
+                    };
+
+                    // Drag and Drop (Mobile / Touch)
+                    btn.ontouchstart = (e) => {
+                        handleTouchStart(e, index);
+                    };
+                    btn.ontouchmove = (e) => {
+                        handleTouchMove(e);
+                    };
+                    btn.ontouchend = (e) => {
+                        handleTouchEnd(e);
+                    };
+
                     if (activePresetNum === patch.presetNum) {
                         btn.classList.add('active');
                     }
@@ -377,6 +428,71 @@
                 const pads = document.querySelectorAll('.pad');
                 pads.forEach(pad => pad.classList.remove('active'));
             }
+        }
+
+        // ==========================================
+        // DRAG AND DROP & TOUCH REORDERING LOGIC
+        // ==========================================
+        function spostaPatch(fromIndex, toIndex) {
+            if (!activeConcert || !activeConcert.songs[currentSongIndex]) return;
+            const song = activeConcert.songs[currentSongIndex];
+            if (!song.patches || fromIndex < 0 || toIndex < 0 || fromIndex >= song.patches.length || toIndex >= song.patches.length) return;
+
+            // Riorganizza l'array
+            const [movedPatch] = song.patches.splice(fromIndex, 1);
+            song.patches.splice(toIndex, 0, movedPatch);
+
+            // Salva in localStorage
+            try {
+                localStorage.setItem('midiLive_database', JSON.stringify(database));
+                logToTerminal(`Ordinamento modificato: Spostata patch in posizione ${toIndex + 1}.`, "info");
+            } catch (err) {
+                console.error("Errore salvataggio localStorage:", err);
+            }
+
+            // Ridisegna la canzone corrente
+            renderCurrentSong();
+        }
+
+        function handleTouchStart(e, index) {
+            draggedPatchIndex = index;
+            e.currentTarget.classList.add('dragging');
+        }
+
+        function handleTouchMove(e) {
+            e.preventDefault(); // Impedisce lo scorrimento
+            const touch = e.touches[0];
+            const target = document.elementFromPoint(touch.clientX, touch.clientY);
+            
+            // Ripristina l'hover di tutti i pad
+            const pads = document.querySelectorAll('.pad');
+            pads.forEach(pad => pad.style.transform = '');
+
+            if (target) {
+                const pad = target.closest('.pad');
+                if (pad && pad !== e.currentTarget) {
+                    pad.style.transform = 'scale(1.05)';
+                    lastTouchTarget = pad;
+                } else {
+                    lastTouchTarget = null;
+                }
+            }
+        }
+
+        function handleTouchEnd(e) {
+            e.currentTarget.classList.remove('dragging');
+            
+            const pads = document.querySelectorAll('.pad');
+            pads.forEach(pad => pad.style.transform = '');
+
+            if (lastTouchTarget && draggedPatchIndex !== null) {
+                const toIndex = parseInt(lastTouchTarget.dataset.index);
+                if (!isNaN(toIndex) && toIndex !== draggedPatchIndex) {
+                    spostaPatch(draggedPatchIndex, toIndex);
+                }
+            }
+            draggedPatchIndex = null;
+            lastTouchTarget = null;
         }
 
         // ==========================================
