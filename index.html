@@ -216,7 +216,7 @@
         // ==========================================
         // STATO DELL'APPLICAZIONE
         // ==========================================
-        const APP_VERSION = "2026.07.14-2231";
+        const APP_VERSION = "2026.07.14-2234";
         let database = null;
         let activeConcert = null;
         let currentSongIndex = 0;
@@ -293,7 +293,16 @@
         function startConcert(concertIndex) {
             activeConcert = database.concerts[concertIndex];
             currentSongIndex = 0;
-            activePresetNum = null;
+            
+            const firstSong = activeConcert.songs[0];
+            if (firstSong && firstSong.patches && firstSong.patches.length > 0) {
+                const firstPatch = firstSong.patches[0];
+                activePresetNum = firstPatch.presetNum;
+                sendPC(firstPatch.presetNum);
+            } else {
+                activePresetNum = null;
+            }
+            
             document.getElementById('view-concerts').style.display = 'none';
             document.getElementById('view-live').style.display = 'flex';
             renderCurrentSong();
